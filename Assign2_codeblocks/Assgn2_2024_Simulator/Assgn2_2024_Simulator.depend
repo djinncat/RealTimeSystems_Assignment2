@@ -1,0 +1,31 @@
+# depslib dependency file v1.0
+1711700728 source:c:\users\u8009677\onedrive - usq\documents\ele3307\t2 2024\assignments\assignment 1\software\assgn1_2024_simulator\assgn1_2024_simulator\pnpsim.c
+	"pnpSim.h"
+
+1711700944 c:\users\u8009677\onedrive - usq\documents\ele3307\t2 2024\assignments\assignment 1\software\assgn1_2024_simulator\assgn1_2024_simulator\pnpsim.h
+	<stdio.h>
+	<stdlib.h>
+	<fcntl.h>
+	<sys/mman.h>
+	<unistd.h>
+	<time.h>
+	<math.h>
+
+1711700729 source:c:\users\u8009677\onedrive - usq\documents\ele3307\t2 2024\assignments\assignment 1\software\assgn1_2024_simulator\assgn1_2024_simulator\pnpsimfunctions.c
+	"pnpSim.h"
+
+1719335079 source:c:\users\thisi\desktop\ele4307\assignment2\assgn2_2024_simulator\assgn2_2024_simulator\pnpsim.c
+	"pnpSim.h"
+
+1719335079 c:\users\thisi\desktop\ele4307\assignment2\assgn2_2024_simulator\assgn2_2024_simulator\pnpsim.h
+	<stdio.h>
+	<stdlib.h>
+	<fcntl.h>
+	<sys/mman.h>
+	<unistd.h>
+	<time.h>
+	<math.h>
+
+1719335079 source:c:\users\thisi\desktop\ele4307\assignment2\assgn2_2024_simulator\assgn2_2024_simulator\pnpsimfunctions.c
+	"pnpSim.h"
+
