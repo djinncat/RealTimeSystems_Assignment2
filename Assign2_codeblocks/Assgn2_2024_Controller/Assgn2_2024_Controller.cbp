@@ -19,7 +19,11 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
-		<Unit filename="pnpContlr.c">
+		<Unit filename="pnpControl.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="pnpControl.h" />
+		<Unit filename="pnpControlInterface.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Extensions>

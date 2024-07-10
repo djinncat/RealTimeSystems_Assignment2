@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <CodeBlocks_workspace_file>
 	<Workspace title="Workspace">
-		<Project filename="Assgn2_2024_Simulator/Assgn2_2024_Simulator.cbp" />
 		<Project filename="Assgn2_2024_Startup/Assgn2_2024_Startup.cbp" />
-		<Project filename="Assign2_2024_Display/Assign2_2024_Display.cbp" />
 		<Project filename="Assgn2_2024_Controller/Assgn2_2024_Controller.cbp" />
+		<Project filename="Assgn2_2024_Simulator/Assgn2_2024_Simulator.cbp" />
+		<Project filename="Assgn2_2024_Display/Assgn2_2024_Display.cbp" />
 	</Workspace>
 </CodeBlocks_workspace_file>

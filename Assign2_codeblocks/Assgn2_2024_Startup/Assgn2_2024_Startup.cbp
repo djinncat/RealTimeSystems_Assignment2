@@ -22,6 +22,9 @@
 		<Unit filename="pnpStart.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="pnpStart.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
 		<Extensions>
 			<lib_finder disable_auto="1" />
 		</Extensions>

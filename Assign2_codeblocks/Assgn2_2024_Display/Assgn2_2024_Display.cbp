@@ -2,12 +2,12 @@
 <CodeBlocks_project_file>
 	<FileVersion major="1" minor="6" />
 	<Project>
-		<Option title="Assign2_2024_Display" />
+		<Option title="Assgn2_2024_Display" />
 		<Option pch_mode="2" />
 		<Option compiler="cygwin" />
 		<Build>
 			<Target title="Release">
-				<Option output="bin/Release/Assign2_2024_Display" prefix_auto="1" extension_auto="1" />
+				<Option output="bin/Release/Assgn2_2024_Display" prefix_auto="1" extension_auto="1" />
 				<Option object_output="obj/Release/" />
 				<Option type="1" />
 				<Option compiler="cygwin" />
