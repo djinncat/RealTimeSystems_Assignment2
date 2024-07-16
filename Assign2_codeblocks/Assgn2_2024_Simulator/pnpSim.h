@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <math.h>
+#include <string.h>
 
 #define MEMORY_MAPPED_FILE "pnp_shared_file"
 

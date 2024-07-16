@@ -11,7 +11,7 @@
 
 #include "pnpSim.h"
 
-int main()
+int main(int argc, char *argv[])
 {
 
     PnP *pnp;
@@ -28,6 +28,11 @@ int main()
     int instruction_being_executed = NO_INSTRUCTION;
     int number_of_placed_parts = 0, number_of_dropped_parts = 0;
     int photo_direction;
+
+    char *strFromSimulator;
+    int writeSimToDisplayFd = atoi(argv[1]);
+
+
     srand(time(0));
 
     /* initialize file for memory mapping */
@@ -50,7 +55,11 @@ int main()
 
     /* reset the pick and place machine*/
     resetPnP(pnp, sim_time);
+
+    strFromSimulator = "Message from simulator\n";
+    write(writeSimToDisplayFd, strFromSimulator, strlen(strFromSimulator));
     printf("Time: %7.2f  Pick and place machine simulation started successfully!\n", sim_time);
+    close(writeSimToDisplayFd);
 
     const char nozzle_name[3][10] = {"Left", "Centre", "Right"};
 
@@ -401,5 +410,5 @@ int main()
     munmap(pnp, sizeof(PnP));
     close(fd);
 
-    exit(0);
+    exit(20);
 }

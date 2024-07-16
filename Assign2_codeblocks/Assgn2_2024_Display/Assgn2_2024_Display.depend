@@ -1,0 +1,14 @@
+# depslib dependency file v1.0
+1721096350 source:c:\users\thisi\desktop\ele4307\assignment2\assign2_codeblocks\assgn2_2024_display\pnpdisplay.c
+	<stdlib.h>
+	<stdio.h>
+	<unistd.h>
+	<string.h>
+	<stdio.h>
+	<stdlib.h>
+	<sys/wait.h>
+	<sys/types.h>
+	<unistd.h>
+	<semaphore.h>
+	<fcntl.h>
+
