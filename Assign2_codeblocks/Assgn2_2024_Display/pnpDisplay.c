@@ -7,35 +7,56 @@
 
 int main(int argc, char *argv[])
 {
+    char readBufferStartup[READ_BLOCK_SIZE+1], readBufferSim[READ_BLOCK_SIZE+1], readBufferContrl[READ_BLOCK_SIZE+1];
 
-    char readStartupBuffer[READ_BLOCK_SIZE+1];
-    char readSimBuffer[READ_BLOCK_SIZE+1];
-    ssize_t bytesRead1, bytesRead2;
-
+    ssize_t bytesReadStartup, bytesReadSim, bytesReadContrl;
     printf("I am Display child printing on my own with PID %d\n", getpid());
-
+    // set tup the file descriptors for each of the other processes to communicate
     int readStartupFd = atoi(argv[1]);
     int readSimFd = atoi(argv[2]);
-    bytesRead1 = read(readStartupFd, readStartupBuffer, READ_BLOCK_SIZE);  //display process will stop here until there is a message
-    bytesRead2 = read(readSimFd, readSimBuffer, READ_BLOCK_SIZE);
+    int readContrlFd = atoi(argv[3]);
+
+    bytesReadStartup = read(readStartupFd, readBufferStartup, READ_BLOCK_SIZE);  //display process will stop here until there is a message
+    bytesReadSim = read(readSimFd, readBufferSim, READ_BLOCK_SIZE);
+    bytesReadContrl = read(readContrlFd, readBufferContrl, READ_BLOCK_SIZE);
+
     printf("Display: I will receive and display all messages from now on\n");
-//switch case might solve problem here
 
-    while (bytesRead1 > 0 || bytesRead2 > 0)
+    while (bytesReadStartup > 0 || bytesReadSim > 0 || bytesReadContrl > 0)
     {
-        readStartupBuffer[bytesRead1] = '\0';
-        readSimBuffer[bytesRead2] = '\0';
-        printf("%s", readStartupBuffer);
-        printf("%s", readSimBuffer);
-        bytesRead1 = read(readStartupFd, readStartupBuffer, READ_BLOCK_SIZE);
-        bytesRead2 = read(readSimFd, readSimBuffer, READ_BLOCK_SIZE);
-    }
+        if (bytesReadStartup > 0)
+        {
+            readBufferStartup[bytesReadStartup] = '\0';
+            printf("%s\n", readBufferStartup);
+            bytesReadStartup = read(readStartupFd, readBufferStartup, READ_BLOCK_SIZE);
+        }
 
-    printf("Display: Finished reading from pipes\n");
-    close(readStartupFd);
+        if (bytesReadContrl > 0)
+        {
+            readBufferContrl[bytesReadContrl] = '\0';
+            printf("%s\n", readBufferContrl);
+            bytesReadContrl = read(readContrlFd, readBufferContrl, READ_BLOCK_SIZE);
+        }
+
+        if (bytesReadSim > 0)
+        {
+            readBufferSim[bytesReadSim] = '\0';
+            printf("%s\n", readBufferSim);
+            bytesReadSim = read(readSimFd, readBufferSim, READ_BLOCK_SIZE);
+        }
+
+    } //end while loop
+
+    // the writing end of the pipe has been closed and there are no
+    // more bytes to read
+    printf("Display: Finished reading from pipe\n");
+    printf("Display: Terminating...\n");
+    close(readStartupFd);  //close all the pipes and terminate
     close(readSimFd);
+    close(readContrlFd);
     exit(10);
-}
+
+} // end main
 
 
 /* **********************************************
