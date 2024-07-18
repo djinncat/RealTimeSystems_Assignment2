@@ -9,24 +9,10 @@
  *
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
 #include "pnpSim.h"
 
-int main(int argc, char *argv[])
+int main()
 {
-
-    char Sim_str_array[100];
-    char *strFromSim;
-    int writeSimToDisplayFd = atoi(argv[1]);  // the file descriptor to write from Simulator to Display
-//    strFromSim = "Simulator: test message\n";
-//    write(writeSimToDisplayFd, strFromSim, strlen(strFromSim));
-    //double sim_time = 0.0;
-    //sprintf(Sim_str_array, "Time: %7.2f  Pick and place machine simulation started successfully!\n", 0.0);
-    //write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
-
 
     PnP *pnp;
 
@@ -42,7 +28,6 @@ int main(int argc, char *argv[])
     int instruction_being_executed = NO_INSTRUCTION;
     int number_of_placed_parts = 0, number_of_dropped_parts = 0;
     int photo_direction;
-
     srand(time(0));
 
     /* initialize file for memory mapping */
@@ -65,11 +50,7 @@ int main(int argc, char *argv[])
 
     /* reset the pick and place machine*/
     resetPnP(pnp, sim_time);
-
-//printf("Time: %7.2f  Pick and place machine simulation started successfully!\n", sim_time);
-    sprintf(Sim_str_array, "Time: %7.2f  Pick and place machine simulation started successfully!\n", sim_time);
-    write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
-
+    printf("Time: %7.2f  Pick and place machine simulation started successfully!\n", sim_time);
 
     const char nozzle_name[3][10] = {"Left", "Centre", "Right"};
 
@@ -80,7 +61,6 @@ int main(int argc, char *argv[])
      */
     while (pnp -> quit == FALSE)
     {
-
         /*
          * If there is no instruction currently being executed, this code checks whether there
          * is a new instruction pending from the controller, and if so, determines the instruction
@@ -91,7 +71,6 @@ int main(int argc, char *argv[])
          */
         if (instruction_being_executed == NO_INSTRUCTION)
         {
-
             int new_instruction = pnp -> instruction_to_execute;
 
             if (new_instruction == MOVE_HEAD)
@@ -106,23 +85,18 @@ int main(int argc, char *argv[])
                         pnp -> instruction_to_execute = NO_INSTRUCTION;
                         instruction_being_executed = MOVE_HEAD;
                         instruction_finish_time = sim_time + (double)sqrt(pow((x - x_target), 2) + pow((y - y_target), 2)) / HEAD_FULL_SPEED;
-                        sprintf(Sim_str_array, "Time: %7.2f  Head moving from (%.2f, %.2f) to (%.2f, %.2f)\n", sim_time, x, y, x_target, y_target);
-                        write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                        printf("Time: %7.2f  Head moving from (%.2f, %.2f) to (%.2f, %.2f)\n", sim_time, x, y, x_target, y_target);
                     }
                     else
                     {
-                        sprintf(Sim_str_array, "Time: %7.2f  Bad MOVE_HEAD command: destination out of range\n", sim_time);
-                        write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                        printf("Time: %7.2f  Bad MOVE_HEAD command: destination out of range\n", sim_time);
                     }
                 }
                 else
                 {
-                    sprintf(Sim_str_array, "Time: %7.2f  Bad MOVE_HEAD command: one or more nozzles down\n", sim_time);
-                    write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                    printf("Time: %7.2f  Bad MOVE_HEAD command: one or more nozzles down\n", sim_time);
                 }
-
             }
-
             else if (new_instruction == ROTATE_NOZZLE)
             {
                 nozzle = pnp -> instruction_argument_3;
@@ -134,13 +108,11 @@ int main(int argc, char *argv[])
                     controller_theta = pnp -> instruction_argument_1;
                     instruction_finish_time = sim_time + (double)abs(controller_theta) / NOZZLE_ROTATE_SPEED;
 
-                    sprintf(Sim_str_array, "Time: %7.2f  %s nozzle being rotated by %.2f degrees\n", sim_time, nozzle_name[nozzle], controller_theta);
-                    write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                    printf("Time: %7.2f  %s nozzle being rotated by %.2f degrees\n", sim_time, nozzle_name[nozzle], controller_theta);
                 }
                 else
                 {
-                    sprintf(Sim_str_array, "Time: %7.2f  Bad ROTATE_NOZZLE command: nozzle out of range\n", sim_time);
-                    write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                    printf("Time: %7.2f  Bad ROTATE_NOZZLE command: nozzle out of range\n", sim_time);
                 }
 
             }
@@ -153,13 +125,11 @@ int main(int argc, char *argv[])
                     pnp -> instruction_to_execute = NO_INSTRUCTION;
                     instruction_being_executed = LOWER_NOZZLE;
                     instruction_finish_time = sim_time + NOZZLE_LOWER_TIME;
-                    sprintf(Sim_str_array, "Time: %7.2f  %s nozzle being lowered\n", sim_time, nozzle_name[nozzle]);
-                    write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                    printf("Time: %7.2f  %s nozzle being lowered\n", sim_time, nozzle_name[nozzle]);
                 }
                 else
                 {
-                    sprintf(Sim_str_array, "Time: %7.2f  Bad LOWER_NOZZLE command: nozzle out of range\n", sim_time);
-                    write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                    printf("Time: %7.2f  Bad LOWER_NOZZLE command: nozzle out of range\n", sim_time);
                 }
             }
             else if (new_instruction == RAISE_NOZZLE)
@@ -171,13 +141,11 @@ int main(int argc, char *argv[])
                     pnp -> instruction_to_execute = NO_INSTRUCTION;
                     instruction_being_executed = RAISE_NOZZLE;
                     instruction_finish_time = sim_time + NOZZLE_RAISE_TIME;
-                    sprintf(Sim_str_array, "Time: %7.2f  %s nozzle being raised\n", sim_time, nozzle_name[nozzle]);
-                    write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                    printf("Time: %7.2f  %s nozzle being raised\n", sim_time, nozzle_name[nozzle]);
                 }
                 else
                 {
-                    sprintf(Sim_str_array, "Time: %7.2f  Bad RAISE_NOZZLE command: nozzle out of range\n", sim_time);
-                    write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                    printf("Time: %7.2f  Bad RAISE_NOZZLE command: nozzle out of range\n", sim_time);
                 }
             }
             else if (new_instruction == APPLY_VACUUM)
@@ -189,13 +157,11 @@ int main(int argc, char *argv[])
                     pnp -> instruction_to_execute = NO_INSTRUCTION;
                     instruction_being_executed = APPLY_VACUUM;
                     instruction_finish_time = sim_time + VACUUM_APPLY_TIME;
-                    sprintf(Sim_str_array, "Time: %7.2f  %s nozzle is about to apply vacuum\n", sim_time, nozzle_name[nozzle]);
-                    write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                    printf("Time: %7.2f  %s nozzle is about to apply vacuum\n", sim_time, nozzle_name[nozzle]);
                 }
                 else
                 {
-                    sprintf(Sim_str_array, "Time: %7.2f  Bad APPLY_VACUUM command: nozzle out of range\n", sim_time);
-                    write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                    printf("Time: %7.2f  Bad APPLY_VACUUM command: nozzle out of range\n", sim_time);
                 }
             }
             else if (new_instruction == RELEASE_VACUUM)
@@ -207,13 +173,11 @@ int main(int argc, char *argv[])
                     pnp -> instruction_to_execute = NO_INSTRUCTION;
                     instruction_being_executed = RELEASE_VACUUM;
                     instruction_finish_time = sim_time + VACUUM_RELEASE_TIME;
-                    sprintf(Sim_str_array, "Time: %7.2f  %s nozzle is about to release vacuum\n", sim_time, nozzle_name[nozzle]);
-                    write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                    printf("Time: %7.2f  %s nozzle is about to release vacuum\n", sim_time, nozzle_name[nozzle]);
                  }
                 else
                 {
-                    sprintf(Sim_str_array, "Time: %7.2f  Bad RELEASE_VACUUM command: nozzle out of range\n", sim_time);
-                    write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                    printf("Time: %7.2f  Bad RELEASE_VACUUM command: nozzle out of range\n", sim_time);
                 }
             }
             else if (new_instruction == TAKE_PHOTO)
@@ -227,19 +191,16 @@ int main(int argc, char *argv[])
                     instruction_finish_time = sim_time + PHOTO_TAKE_TIME;
                     if (photo_direction == PHOTO_LOOKUP)
                     {
-                        sprintf(Sim_str_array, "Time: %7.2f  Photo about to be taken by lookup camera\n", sim_time);
-                        write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                        printf("Time: %7.2f  Photo about to be taken by lookup camera\n", sim_time);
                     }
                     else
                     {
-                        sprintf(Sim_str_array, "Time: %7.2f  Photo about to be taken by lookdown camera\n", sim_time);
-                        write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                        printf("Time: %7.2f  Photo about to be taken by lookdown camera\n", sim_time);
                     }
                 }
                 else
                 {
-                    sprintf(Sim_str_array, "Time: %7.2f  Bad TAKE_PHOTO command: specified camera is not Lookup or Lookdown\n", sim_time);
-                    write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                    printf("Time: %7.2f  Bad TAKE_PHOTO command: specified camera is not Lookup or Lookdown\n", sim_time);
                 }
             }
             else if (new_instruction == AMEND_HEAD_POSITION)
@@ -254,19 +215,16 @@ int main(int argc, char *argv[])
                         pnp -> instruction_to_execute = NO_INSTRUCTION;
                         instruction_being_executed = AMEND_HEAD_POSITION;
                         instruction_finish_time = sim_time + (double)sqrt(pow((controller_del_x), 2) + pow((controller_del_y), 2)) / HEAD_FULL_SPEED;
-                        sprintf(Sim_str_array, "Time: %7.2f  Head moving from (%.2f, %.2f) to (%.2f, %.2f)\n", sim_time, x, y, x + controller_del_x, y + controller_del_y);
-                        write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                        printf("Time: %7.2f  Head moving from (%.2f, %.2f) to (%.2f, %.2f)\n", sim_time, x, y, x + controller_del_x, y + controller_del_y);
                     }
                     else
                     {
-                        sprintf(Sim_str_array, "Time: %7.2f  Bad AMEND_HEAD_POSITION command: destination out of range\n", sim_time);
-                        write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                        printf("Time: %7.2f  Bad AMEND_HEAD_POSITION command: destination out of range\n", sim_time);
                     }
                 }
                 else
                 {
-                    sprintf(Sim_str_array, "Time: %7.2f  Bad AMEND_HEAD_POSITION command: one or more nozzles down\n", sim_time);
-                    write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                    printf("Time: %7.2f  Bad AMEND_HEAD_POSITION command: one or more nozzles down\n", sim_time);
                 }
             }
         }
@@ -287,21 +245,18 @@ int main(int argc, char *argv[])
                 case MOVE_HEAD:
                     x = x_target;
                     y = y_target;
-                    sprintf(Sim_str_array, "Time: %7.2f  Head arrived at nominal location (%.2f, %.2f)\n", sim_time, x, y);
-                    write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                    printf("Time: %7.2f  Head arrived at nominal location (%.2f, %.2f)\n", sim_time, x, y);
                     break;
 
                 case ROTATE_NOZZLE:
                     theta_actual[nozzle] = theta_actual[nozzle] + controller_theta;
-                    sprintf(Sim_str_array, "Time: %7.2f  %s nozzle finished rotating by %.2f degrees, effective rotation including misalignment theta_error=%.2f degrees is %.2f degrees\n",
+                    printf("Time: %7.2f  %s nozzle finished rotating by %.2f degrees, effective rotation including misalignment theta_error=%.2f degrees is %.2f degrees\n",
                             sim_time, nozzle_name[nozzle], controller_theta, theta_pick_error[nozzle], theta_actual[nozzle]);
-                    write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
                     break;
 
                 case LOWER_NOZZLE:
                     nozzle_down[nozzle] = TRUE;
-                    sprintf(Sim_str_array, "Time: %7.2f  %s nozzle lowered\n", sim_time, nozzle_name[nozzle]);
-                    write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                    printf("Time: %7.2f  %s nozzle lowered\n", sim_time, nozzle_name[nozzle]);
                     /* code for when part is being picked up from tape feeder */
                     feeder = getTapeFeederNumberAtLocation(x + (nozzle - CENTRE_NOZZLE) * NOZZLE_X_SEPARATION,y);
                     if (nozzle_vacuum[nozzle] == TRUE
@@ -309,27 +264,23 @@ int main(int argc, char *argv[])
                         && feeder != NO_TAPE_FEEDER_AT_THIS_LOCATION)
                     {
                         nozzle_picked_part[nozzle] = feeder;
-                        sprintf(Sim_str_array, "Time: %7.2f  %s nozzle has picked up part from feeder %d\n", sim_time, nozzle_name[nozzle], feeder);
-                        write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                        printf("Time: %7.2f  %s nozzle has picked up part from feeder %d\n", sim_time, nozzle_name[nozzle], feeder);
                     }
                     else if (nozzle_vacuum[nozzle] == TRUE
                             && nozzle_picked_part[nozzle] == NO_PICKED_PART)
                     {
-                        sprintf(Sim_str_array, "Time: %7.2f  No tape feeder underneath nozzle %s when vacuum applied so no part picked up\n", sim_time, nozzle_name[nozzle]);
-                        write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                        printf("Time: %7.2f  No tape feeder underneath nozzle %s when vacuum applied so no part picked up\n", sim_time, nozzle_name[nozzle]);
                     }
                     break;
 
                 case RAISE_NOZZLE:
                     nozzle_down[nozzle] = FALSE;
-                    sprintf(Sim_str_array, "Time: %7.2f  %s nozzle raised\n", sim_time, nozzle_name[nozzle]);
-                    write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                    printf("Time: %7.2f  %s nozzle raised\n", sim_time, nozzle_name[nozzle]);
                     break;
 
                 case APPLY_VACUUM:
                     nozzle_vacuum[nozzle] = TRUE;
-                    sprintf(Sim_str_array, "Time: %7.2f  %s nozzle now has vacuum applied\n", sim_time, nozzle_name[nozzle]);
-                    write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                    printf("Time: %7.2f  %s nozzle now has vacuum applied\n", sim_time, nozzle_name[nozzle]);
                     /* code for when part is being picked up from tape feeder */
                     feeder = getTapeFeederNumberAtLocation(x + (nozzle - CENTRE_NOZZLE) * NOZZLE_X_SEPARATION,y);
                     if (nozzle_down[nozzle] == TRUE
@@ -337,43 +288,36 @@ int main(int argc, char *argv[])
                         && feeder != NO_TAPE_FEEDER_AT_THIS_LOCATION)
                     {
                         nozzle_picked_part[nozzle] = feeder;
-                        sprintf(Sim_str_array, "Time: %7.2f  %s nozzle has picked up part from feeder %d\n", sim_time, nozzle_name[nozzle], feeder);
-                        write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                        printf("Time: %7.2f  %s nozzle has picked up part from feeder %d\n", sim_time, nozzle_name[nozzle], feeder);
                     }
                     else if (nozzle_down[nozzle] == TRUE && nozzle_picked_part[nozzle] == NO_PICKED_PART)
                     {
-                        sprintf(Sim_str_array, "Time: %7.2f  No tape feeder underneath nozzle %s when vacuum applied so no part picked up\n", sim_time, nozzle_name[nozzle]);
-                        write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                        printf("Time: %7.2f  No tape feeder underneath nozzle %s when vacuum applied so no part picked up\n", sim_time, nozzle_name[nozzle]);
                     }
                     break;
 
                 case RELEASE_VACUUM:
                     nozzle_vacuum[nozzle] = FALSE;
-                    sprintf(Sim_str_array, "Time: %7.2f  %s nozzle now has vacuum released\n", sim_time, nozzle_name[nozzle]);
-                    write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                    printf("Time: %7.2f  %s nozzle now has vacuum released\n", sim_time, nozzle_name[nozzle]);
                     /* code for when part is being placed on PCB */
                     if (nozzle_down[nozzle] == TRUE
                         && nozzle_picked_part[nozzle] != NO_PICKED_PART
                         && x >= 0.0 && y >= 0.0)
                     {
-                        sprintf(Sim_str_array, "Time: %7.2f  %s nozzle has placed part from feeder %d at (%.2f, %.2f) with rotation %.2f degrees\n",
+                        printf("Time: %7.2f  %s nozzle has placed part from feeder %d at (%.2f, %.2f) with rotation %.2f degrees\n",
                                sim_time, nozzle_name[nozzle], nozzle_picked_part[nozzle], x, y, theta_actual[nozzle]);
-                        write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
                         placedPart[number_of_placed_parts].x_actual = x;
                         placedPart[number_of_placed_parts].y_actual = y;
                         placedPart[number_of_placed_parts].theta_actual = theta_actual[nozzle];
                         placedPart[number_of_placed_parts].feeder = nozzle_picked_part[nozzle];
                         number_of_placed_parts++;
-                        strFromSim = "\nSummary of placed parts so far:\n";
-                        write(writeSimToDisplayFd, strFromSim, strlen(strFromSim));
+                        printf("\nSummary of placed parts so far:\n");
                         for (int i = 0; i < number_of_placed_parts; i++)
                         {
-                            sprintf(Sim_str_array, "Part %d from feeder %d placed at (%.2f, %.2f) with rotation %.2f degrees\n", i,
+                            printf("Part %d from feeder %d placed at (%.2f, %.2f) with rotation %.2f degrees\n", i,
                                    placedPart[i].feeder, placedPart[i].x_actual, placedPart[i].y_actual, placedPart[i].theta_actual);
-                            write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
                         }
-                        strFromSim = "\n";
-                        write(writeSimToDisplayFd, strFromSim, strlen(strFromSim));
+                        printf("\n");
                         nozzle_picked_part[nozzle] = NO_PICKED_PART;
 
                         /* reset pick and preplace alignment error values after part placed */
@@ -390,8 +334,7 @@ int main(int argc, char *argv[])
                     else if (nozzle_down[nozzle] == FALSE
                              && nozzle_picked_part[nozzle] != NO_PICKED_PART)
                     {
-                        sprintf(Sim_str_array, "Time: %7.2f  %s nozzle has DROPPED part from feeder %d at (%.2f, %.2f)\n", sim_time, nozzle_name[nozzle], nozzle_picked_part[nozzle], x, y);
-                        write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                        printf("Time: %7.2f  %s nozzle has DROPPED part from feeder %d at (%.2f, %.2f)\n", sim_time, nozzle_name[nozzle], nozzle_picked_part[nozzle], x, y);
                         number_of_dropped_parts++;
                         nozzle_picked_part[nozzle] = NO_PICKED_PART;
                     }
@@ -401,8 +344,7 @@ int main(int argc, char *argv[])
                     /* code for when lookup camera is used to take photos to discover pick misalignment */
                     if (photo_direction == PHOTO_LOOKUP && x == LOOKUP_CAMERA_X && y == LOOKUP_CAMERA_Y)
                     {
-                        sprintf(Sim_str_array, "Time: %7.2f  Photo taken by lookup camera\n", sim_time);
-                        write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                        printf("Time: %7.2f  Photo taken by lookup camera\n", sim_time);
                         for (int i = 0; i < NUMBER_OF_NOZZLES; i++)
                         {
                             if (nozzle_picked_part[i] != NO_PICKED_PART)
@@ -410,8 +352,7 @@ int main(int argc, char *argv[])
                                 theta_pick_error[i] = MAX_THETA_PICK_MISALIGNMENT * (double)rand()/RAND_MAX - MAX_THETA_PICK_MISALIGNMENT / 2;
                                 theta_actual[i] = theta_pick_error[i];
 
-                                sprintf(Sim_str_array, "Time: %7.2f  Picked part on %s nozzle has misalignment theta_error=%.2f degrees\n", sim_time, nozzle_name[i], theta_pick_error[i]);
-                                write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                                printf("Time: %7.2f  Picked part on %s nozzle has misalignment theta_error=%.2f degrees\n", sim_time, nozzle_name[i], theta_pick_error[i]);
 
                                 pnp -> theta_pick_error[i] = theta_pick_error[i];
                             }
@@ -419,14 +360,12 @@ int main(int argc, char *argv[])
                      }
                      else if (photo_direction == PHOTO_LOOKDOWN && x >= 0.0 && y >= 0.0)
                      {
-                        sprintf(Sim_str_array, "Time: %7.2f  Photo taken by lookdown camera\n", sim_time);
-                        write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                        printf("Time: %7.2f  Photo taken by lookdown camera\n", sim_time);
 
                         x_preplace_error = MAX_X_PREPLACE_MISALIGNMENT * (double)rand()/RAND_MAX - MAX_X_PREPLACE_MISALIGNMENT / 2;
                         y_preplace_error = MAX_Y_PREPLACE_MISALIGNMENT * (double)rand()/RAND_MAX - MAX_Y_PREPLACE_MISALIGNMENT / 2;
 
-                        sprintf(Sim_str_array, "Time: %7.2f  Head has preplace misalignment x_error=%.2f y_error=%.2f\n", sim_time, x_preplace_error, y_preplace_error);
-                        write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                        printf("Time: %7.2f  Head has preplace misalignment x_error=%.2f y_error=%.2f\n", sim_time, x_preplace_error, y_preplace_error);
 
                         x = x + x_preplace_error;
                         y = y + y_preplace_error;
@@ -440,8 +379,7 @@ int main(int argc, char *argv[])
                 case AMEND_HEAD_POSITION:
                     x = x + controller_del_x;
                     y = y + controller_del_y;
-                    sprintf(Sim_str_array, "Time: %7.2f  Head position amended to (%.2f, %.2f)\n", sim_time, x, y);
-                    write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                    printf("Time: %7.2f  Head position amended to (%.2f, %.2f)\n", sim_time, x, y);
                     break;
             }
 
@@ -456,13 +394,12 @@ int main(int argc, char *argv[])
         /* update shared memory for simulation time (since this must always be updated every poll cycle) */
         pnp -> sim_time = sim_time;
     }
-    strFromSim = "Simulator: Terminating...\n";
-    write(writeSimToDisplayFd, strFromSim, strlen(strFromSim));
-    close(writeSimToDisplayFd);
+
     /* unmap memory and close file descriptor before exit */
     sleep(1);
     resetPnP(pnp, 0.0);
     munmap(pnp, sizeof(PnP));
     close(fd);
-    exit(20);
+
+    exit(0);
 }

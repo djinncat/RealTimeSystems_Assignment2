@@ -7,7 +7,7 @@
 		<Option compiler="cygwin" />
 		<Build>
 			<Target title="Release">
-				<Option output="bin/Release/Assgn1_2024_Simulator" prefix_auto="1" extension_auto="1" />
+				<Option output="bin/Release/Assgn2_2024_Simulator" prefix_auto="1" extension_auto="1" />
 				<Option object_output="obj/Release/" />
 				<Option type="1" />
 				<Option compiler="cygwin" />
@@ -26,6 +26,8 @@
 		<Unit filename="pnpSimFunctions.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Extensions />
+		<Extensions>
+			<lib_finder disable_auto="1" />
+		</Extensions>
 	</Project>
 </CodeBlocks_project_file>

@@ -7,7 +7,6 @@
  *
  * Edited by: Kate Bowater
  * Student Number: U1019160
- * Last edit: 5 Jun 2024
  *
  */
 
@@ -68,8 +67,18 @@ const double TAPE_FEEDER_Y[NUMBER_OF_FEEDERS] = {FDR_0_Y, FDR_1_Y, FDR_2_Y, FDR_
 const char nozzle_name[3][10] = {"left", "centre", "right"};
 
 
-int main()
+int main(int argc, char *argv[])
 {
+    sleep(1);
+    char Contrl_str_array[150];
+    int writeContrlToDisplayFd = atoi(argv[1]);  // the file descriptor to write from controller to Display
+    sprintf(Contrl_str_array, "Time: %7.2f  Controller started successfully!\n", 0.0);
+    write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
+//    sprintf(Contrl_str_array, "Controller: Terminating...\n");
+//    write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
+//    close(writeContrlToDisplayFd);
+//    exit(30);
+
     pnpOpen();
 
     int operation_mode, number_of_components_to_place, res;
@@ -97,16 +106,20 @@ int main()
     */
     if (operation_mode == MANUAL_CONTROL)
     {
+
         /* initialization of variables and controller window */
         int state = HOME, finished = FALSE, part_counter = 0;
         char c, part_placed, NozzleStatus = not_holdingpart;
         double requested_theta = 0;  //the required angle theta of the nozzle position
         double preplace_diff_x = 0, preplace_diff_y = 0;  //difference in required gantry position and actual gantry position for preplacement
 
-        printf("Time: %7.2f  Initial state: %.15s  Operating in manual control mode, there are %d parts to place\n\n", getSimulationTime(), state_name[HOME], number_of_components_to_place);
+        sprintf(Contrl_str_array, "Time: %7.2f  Initial state: %.15s  Operating in manual control mode, there are %d parts to place\n\n", getSimulationTime(), state_name[HOME], number_of_components_to_place);
+        write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
         /* print details of part 0 */
-        printf("Part 0 details:\nDesignation: %s\nFootprint: %s\nValue: %.2f\nx: %.2f\ny: %.2f\ntheta: %.2f\nFeeder: %d\n\n",
+        sprintf(Contrl_str_array, "Part 0 details:\nDesignation: %s\nFootprint: %s\nValue: %.2f\nx: %.2f\ny: %.2f\ntheta: %.2f\nFeeder: %d\n\n",
                pi[0].component_designation, pi[0].component_footprint, pi[0].component_value, pi[0].x_target, pi[0].y_target, pi[0].theta_target, pi[0].feeder);
+        write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
+
 
         /* loop until user quits */
         while(!isPnPSimulationQuitFlagOn())
@@ -124,11 +137,13 @@ int main()
                         //check if user inputs a feeder number that is not next in the centroid file
                         if ((c - '0') != pi[part_counter].feeder)
                         {   /* the expression (c - '0') obtains the integer value of the number key pressed */
-                            printf("Time: %7.2f  WARNING  The next part is in feeder %d.\n", getSimulationTime(), pi[part_counter].feeder);
+                            sprintf(Contrl_str_array, "Time: %7.2f  WARNING  The next part is in feeder %d.\n", getSimulationTime(), pi[part_counter].feeder);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
                             setTargetPos(TAPE_FEEDER_X[c - '0'], TAPE_FEEDER_Y[c - '0']);
                             state = MOVE_TO_FEEDER;
-                            printf("Time: %7.2f  New state: %.20s  Issued instruction to move to tape feeder %c\n", getSimulationTime(), state_name[state], c);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Issued instruction to move to tape feeder %c\n", getSimulationTime(), state_name[state], c);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     }
                     break;
 
@@ -137,7 +152,8 @@ int main()
                     if (isSimulatorReadyForNextInstruction())
                     {
                         state = WAIT_1;
-                        printf("Time: %7.2f  New state: %.20s  Arrived at feeder, waiting for next instruction\n", getSimulationTime(), state_name[state]);
+                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Arrived at feeder, waiting for next instruction\n", getSimulationTime(), state_name[state]);
+                        write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     }
                     break;
 
@@ -147,7 +163,8 @@ int main()
                     {
                         lowerNozzle(CENTRE_NOZZLE);
                         state = LOWER_CNTR_NOZZLE;
-                        printf("Time: %7.2f  New state: %.20s  Issued instruction to pick up part. Lowering centre nozzle\n", getSimulationTime(), state_name[state]);
+                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Issued instruction to pick up part. Lowering centre nozzle\n", getSimulationTime(), state_name[state]);
+                        write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     }
 
                     //'p' to place the part that the nozzle is currently holding
@@ -155,7 +172,8 @@ int main()
                     {
                         lowerNozzle(CENTRE_NOZZLE);
                         state = LOWER_CNTR_NOZZLE;
-                        printf("Time: %7.2f  New state: %.20s  Issued instruction to place part on PCB. Lowering nozzle\n", getSimulationTime(), state_name[state]);
+                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Issued instruction to place part on PCB. Lowering nozzle\n", getSimulationTime(), state_name[state]);
+                        write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     }
 
                     //'c' for camera, should only go to the camera if the nozzle is holding a part
@@ -163,7 +181,8 @@ int main()
                     {
                         setTargetPos(LOOKUP_CAMERA_X,LOOKUP_CAMERA_Y);  //the gantry will move to the position above the camera
                         state = MOVE_TO_CAMERA;      //after the nozzle picked up a part, send the gantry to the lookup camera
-                        printf("Time: %7.2f  New state: %.20s  Issued instruction to move to look-up camera\n", getSimulationTime(), state_name[state]);
+                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Issued instruction to move to look-up camera\n", getSimulationTime(), state_name[state]);
+                        write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     }
 
                     //'r' for rotate to fix the nozzle misalignment error
@@ -171,7 +190,8 @@ int main()
                     {
                         rotateNozzle(CENTRE_NOZZLE, requested_theta);  //rotate the nozzle by the required calculated angle theta
                         state = CORRECT_ERRORS;
-                        printf("Time: %7.2f  New state: %.20s  Correcting part misalignment on nozzle\n", getSimulationTime(), state_name[state]);
+                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Correcting part misalignment on nozzle\n", getSimulationTime(), state_name[state]);
+                        write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     }
 
                     //'a' for adjusting the position of the gantry for preplace misalignment error
@@ -179,14 +199,16 @@ int main()
                     {
                         amendPos(preplace_diff_x, preplace_diff_y); //corrects the position by the calculated difference x and y
                         state = CORRECT_ERRORS;
-                        printf("Time: %7.2f  New state: %.20s  Correcting preplace misalignment of gantry\n", getSimulationTime(), state_name[state]);
+                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Correcting preplace misalignment of gantry\n", getSimulationTime(), state_name[state]);
+                        write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     }
                     // 'h' for home. This will move the gantry back to its home position
                     else if(c == 'h')
                     {
                         setTargetPos(HOME_X,HOME_Y);
                         state = MOVE_TO_HOME;
-                        printf("Time: %7.2f  New state: %.20s  Moving to home position\n", getSimulationTime(), state_name[state]);
+                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Moving to home position\n", getSimulationTime(), state_name[state]);
+                        write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     }
                     // in case the user pressed the wrong number key and needs to change the feeder
                     else if (c == '0' || c == '1' || c == '2' || c == '3' || c == '4' || c == '5' || c == '6' || c == '7' || c == '8' || c == '9')
@@ -194,11 +216,13 @@ int main()
                         //check if user inputs a feeder number that is not next in the centroid file
                         if ((c - '0') != pi[part_counter].feeder)
                         {   /* the expression (c - '0') obtains the integer value of the number key pressed */
-                            printf("Time: %7.2f             %19s  WARNING  The next part is in feeder %d.\n", getSimulationTime()," ", pi[part_counter].feeder);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  WARNING  The next part is in feeder %d.\n", getSimulationTime(), state_name[state], pi[part_counter].feeder);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
                             setTargetPos(TAPE_FEEDER_X[c - '0'], TAPE_FEEDER_Y[c - '0']);
                             state = MOVE_TO_FEEDER;
-                            printf("Time: %7.2f  New state: %.20s  Issued instruction to move to tape feeder %c\n", getSimulationTime(), state_name[state], c);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Issued instruction to move to tape feeder %c\n", getSimulationTime(), state_name[state], c);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     }
 
                     break;
@@ -211,14 +235,16 @@ int main()
                         {   //vacuum will apply when the nozzle is empty
                             applyVacuum(CENTRE_NOZZLE);
                             state = VAC_CNTR_NOZZLE;
-                            printf("Time: %7.2f  New state: %.20s  Applying vacuum\n", getSimulationTime(), state_name[state]);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Applying vacuum\n", getSimulationTime(), state_name[state]);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
                         if(NozzleStatus == holdingpart)
                         {   //vacuum will release the part when the nozzle is holding something
                             releaseVacuum(CENTRE_NOZZLE);
                             part_placed = TRUE;  //counter to indicate the part has been placed
                             state = VAC_CNTR_NOZZLE;
-                            printf("Time: %7.2f  New state: %.20s  Releasing vacuum to place part\n", getSimulationTime(), state_name[state]);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Releasing vacuum to place part\n", getSimulationTime(), state_name[state]);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
                     }
                     break;
@@ -229,7 +255,8 @@ int main()
                     {
                         raiseNozzle(CENTRE_NOZZLE);
                         state = RAISE_CNTR_NOZZLE;
-                        printf("Time: %7.2f  New state: %.20s  Raising nozzle\n", getSimulationTime(), state_name[state]);
+                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Raising nozzle\n", getSimulationTime(), state_name[state]);
+                        write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     }
                     break;
 
@@ -241,7 +268,8 @@ int main()
                         {
                             NozzleStatus = holdingpart;
                             state = WAIT_1;
-                            printf("Time: %7.2f  New state: %.20s  Part acquired, ready for next instruction\n", getSimulationTime(), state_name[state]);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Part acquired, ready for next instruction\n", getSimulationTime(), state_name[state]);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
                         //if the vacuum has just released a part, then the part has been placed and the nozzle is free again
                         if (part_placed==TRUE)
@@ -252,17 +280,20 @@ int main()
                             if (part_counter != number_of_components_to_place)
                             {   //since there are still components to be placed, go back to Home to cycle again. Display the next set of part details
                                 state = HOME;
-                                printf("Time: %7.2f  New state: %.20s  Part %d placed on PCB successfully\n\n", getSimulationTime(), state_name[state], (part_counter-1));
-                                printf("Part %d details:\nDesignation: %s\nFootprint: %s\nValue: %.2f\nx: %.2f\ny: %.2f\ntheta: %.2f\nFeeder: %d\n\n", part_counter,
-                                pi[part_counter].component_designation, pi[part_counter].component_footprint, pi[part_counter].component_value, pi[part_counter].x_target,
-                                pi[part_counter].y_target, pi[part_counter].theta_target, pi[part_counter].feeder);
+                                sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Part %d placed on PCB successfully\n\n", getSimulationTime(), state_name[state], (part_counter-1));
+                                write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
+                                sprintf(Contrl_str_array, "Part %d details:\nDesignation: %s\nFootprint: %s\nValue: %.2f\nx: %.2f\ny: %.2f\ntheta: %.2f\nFeeder: %d\n\n", part_counter,
+                                    pi[part_counter].component_designation, pi[part_counter].component_footprint, pi[part_counter].component_value, pi[part_counter].x_target,
+                                    pi[part_counter].y_target, pi[part_counter].theta_target, pi[part_counter].feeder);
+                                write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                             }
                             else if(part_counter == number_of_components_to_place)
                             {
                                 finished = TRUE;
                                 setTargetPos(HOME_X,HOME_Y);
                                 state = MOVE_TO_HOME;
-                                printf("Time: %7.2f  New state: %.20s  All parts have been placed! Moving to home\n", getSimulationTime(), state_name[state]);
+                                sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  All parts have been placed! Moving to home\n", getSimulationTime(), state_name[state]);
+                                write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                             }
                         }
                     }
@@ -274,7 +305,8 @@ int main()
                     {
                         takePhoto(PHOTO_LOOKUP);
                         state = LOOK_UP_PHOTO;
-                        printf("Time: %7.2f  New state: %.20s  Arrived at camera. Taking look-up photo of part\n", getSimulationTime(), state_name[state]);
+                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Arrived at camera. Taking look-up photo of part\n", getSimulationTime(), state_name[state]);
+                        write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     }
                     break;
 
@@ -283,7 +315,8 @@ int main()
                     {   //once look-up photo is taken, move the gantry to the PCB for part placement
                         setTargetPos(pi[part_counter].x_target, pi[part_counter].y_target);
                         state = MOVE_TO_PCB;
-                        printf("Time: %7.2f  New state: %.20s  Look-up photo acquired. Moving to PCB\n", getSimulationTime(), state_name[state]);
+                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Look-up photo acquired. Moving to PCB\n", getSimulationTime(), state_name[state]);
+                        write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     }
                     break;
 
@@ -292,7 +325,8 @@ int main()
                     if (isSimulatorReadyForNextInstruction())
                     {
                         state = LOOK_DOWN_PHOTO;
-                        printf("Time: %7.2f  New state: %.20s  Now at PCB. Taking look-down photo\n", getSimulationTime(), state_name[state]);
+                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Now at PCB. Taking look-down photo\n", getSimulationTime(), state_name[state]);
+                        write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     }
                     break;
 
@@ -300,7 +334,8 @@ int main()
                     //take the look-down photo, then move on to check for errors
                     takePhoto(PHOTO_LOOKDOWN);
                     state = CHECK_ERROR;
-                    printf("Time: %7.2f  New state: %.20s  Look-down photo acquired. Checking for errors in alignment\n", getSimulationTime(), state_name[state]);
+                    sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Look-down photo acquired. Checking for errors in alignment\n", getSimulationTime(), state_name[state]);
+                    write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     break;
 
                 case CHECK_ERROR:
@@ -312,8 +347,10 @@ int main()
                         preplace_diff_x = pi[part_counter].x_target - (pi[part_counter].x_target+getPreplaceErrorX()); //calculate the difference between the required x position and the actual x position of the gantry
                         preplace_diff_y = pi[part_counter].y_target - (pi[part_counter].y_target+getPreplaceErrorY()); //calculate the difference between the required y position and the actual y position of the gantry
                         state = WAIT_1;  //display the errors to the user so they are aware and then wait for instruction
-                        printf("Time: %7.2f             %19s  Part misalignment error: %3.2f, preplace misalignment error: x=%3.2f y=%3.2f\n", getSimulationTime()," ", errortheta, getPreplaceErrorX(), getPreplaceErrorY());
-                        printf("Time: %7.2f  New state: %.20s  Waiting for next instruction. Recommend error correction\n", getSimulationTime(),state_name[state]);
+                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Part misalignment error: %3.2f, preplace misalignment error: x=%3.2f y=%3.2f\n", getSimulationTime(),state_name[state], errortheta, getPreplaceErrorX(), getPreplaceErrorY());
+                        write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
+                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Waiting for next instruction. Recommend error correction\n", getSimulationTime(),state_name[state]);
+                        write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     }
                     break;
 
@@ -321,7 +358,8 @@ int main()
                     if (isSimulatorReadyForNextInstruction())
                     {  //once the nozzle or gantry position has been corrected, go back to wait for next instruction
                         state = WAIT_1;
-                        printf("Time: %7.2f  New state: %.20s  Misalignment corrected, ready for next instruction\n", getSimulationTime(), state_name[state]);
+                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Misalignment corrected, ready for next instruction\n", getSimulationTime(), state_name[state]);
+                        write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     }
                     break;
 
@@ -329,13 +367,14 @@ int main()
                     if (isSimulatorReadyForNextInstruction())
                     {
                         state = HOME;
-                        printf("Time: %7.2f  New state: %.20s  Gantry in Home position. Press q to quit.\n", getSimulationTime(), state_name[state]);
+                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Gantry in Home position. Press q to quit.\n", getSimulationTime(), state_name[state]);
+                        write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     }
                     break;
 
             }
             sleepMilliseconds((long) 1000 / POLL_LOOP_RATE);
-        }
+        } //end while loop
     } // end of manual mode
 
 
@@ -357,7 +396,8 @@ int main()
         double preplace_diff_x = 0, preplace_diff_y = 0;  //difference in required gantry position and actual gantry position for preplacement
 
 
-        printf("Time: %7.2f  Initial state: %.15s  Operating in automatic mode, there are %d parts to place\n\n", getSimulationTime(), state_name[HOME], number_of_components_to_place);
+        sprintf(Contrl_str_array, "Time: %7.2f  Initial state: %.15s  Operating in automatic mode, there are %d parts to place\n\n", getSimulationTime(), state_name[HOME], number_of_components_to_place);
+        write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
 
 
         /* reorder the centroid list by feeder in ascending order and print details */
@@ -410,10 +450,10 @@ int main()
         for (int i = 0; i < number_of_components_to_place; i++)
         {
             component_num = component_list[i];
-            printf("Part %d:\nDesignation: %s  Footprint: %s  Value: %.2f  x: %.2f  y: %.2f  theta: %.2f  Feeder: %d\n\n", component_num,
+            sprintf(Contrl_str_array, "Part %d:\nDesignation: %s  Footprint: %s  Value: %.2f  x: %.2f  y: %.2f  theta: %.2f  Feeder: %d\n\n", component_num,
                 pi[component_num].component_designation, pi[component_num].component_footprint, pi[component_num].component_value,
                 pi[component_num].x_target, pi[component_num].y_target, pi[component_num].theta_target, pi[component_num].feeder);
-
+            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
         }
 
 
@@ -438,7 +478,8 @@ int main()
                         { //go to the first feeder in the list, +20 for the left nozzle positioning
                             setTargetPos(TAPE_FEEDER_X[pi[component_num].feeder]+20, TAPE_FEEDER_Y[pi[component_num].feeder]);
                             state = MOVE_TO_FEEDER;
-                            printf("Time: %7.2f  New state: %.20s  Moving to tape feeder %d\n", getSimulationTime(), state_name[state], pi[component_num].feeder);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Moving to tape feeder %d\n", getSimulationTime(), state_name[state], pi[component_num].feeder);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
                     }
                     break;
@@ -451,19 +492,22 @@ int main()
                         {  //left nozzle goes first due to order of the parts ascending by feeder number
                             lowerNozzle(LEFT_NOZZLE);
                             state = LOWER_LEFT_NOZZLE;
-                            printf("Time: %7.2f  New state: %.20s  Arrived at feeder, lowering left nozzle\n", getSimulationTime(), state_name[state]);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Arrived at feeder, lowering left nozzle\n", getSimulationTime(), state_name[state]);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
                         else if (Centre_NozzleStatus == not_holdingpart)
                         { // centre nozzle picks up part after left nozzle
                             lowerNozzle(CENTRE_NOZZLE);
                             state = LOWER_CNTR_NOZZLE;
-                            printf("Time: %7.2f  New state: %.20s  Arrived at feeder, lowering centre nozzle\n", getSimulationTime(), state_name[state]);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Arrived at feeder, lowering centre nozzle\n", getSimulationTime(), state_name[state]);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
                         else if (Right_NozzleStatus == not_holdingpart)
                         {  //right nozzle is last to pick up part as it is closest to the higher feeder number
                             lowerNozzle(RIGHT_NOZZLE);
                             state = LOWER_RIGHT_NOZZLE;
-                            printf("Time: %7.2f  New state: %.20s  Arrived at feeder, lowering right nozzle\n", getSimulationTime(), state_name[state]);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Arrived at feeder, lowering right nozzle\n", getSimulationTime(), state_name[state]);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
 
                     }
@@ -476,14 +520,16 @@ int main()
                         {   //vacuum will apply when the nozzle is empty
                             applyVacuum(LEFT_NOZZLE);
                             state = VAC_LEFT_NOZZLE;
-                            printf("Time: %7.2f  New state: %.20s  Applying vacuum\n", getSimulationTime(), state_name[state]);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Applying vacuum\n", getSimulationTime(), state_name[state]);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
                         else if(Left_NozzleStatus == holdingpart)
                         {   //vacuum will release the part when the nozzle is holding something
                             releaseVacuum(LEFT_NOZZLE);
                             part_placed = TRUE;  //counter to indicate the part has been placed
                             state = VAC_LEFT_NOZZLE;
-                            printf("Time: %7.2f  New state: %.20s  Releasing vacuum to place part\n", getSimulationTime(), state_name[state]);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Releasing vacuum to place part\n", getSimulationTime(), state_name[state]);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
                     }
 
@@ -496,14 +542,16 @@ int main()
                         {   //vacuum will apply when the nozzle is empty
                             applyVacuum(CENTRE_NOZZLE);
                             state = VAC_CNTR_NOZZLE;
-                            printf("Time: %7.2f  New state: %.20s  Applying vacuum\n", getSimulationTime(), state_name[state]);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Applying vacuum\n", getSimulationTime(), state_name[state]);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
                         else if(Centre_NozzleStatus == holdingpart)
                         {   //vacuum will release the part when the nozzle is holding something
                             releaseVacuum(CENTRE_NOZZLE);
                             part_placed = TRUE;  //counter to indicate the part has been placed
                             state = VAC_CNTR_NOZZLE;
-                            printf("Time: %7.2f  New state: %.20s  Releasing vacuum to place part\n", getSimulationTime(), state_name[state]);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Releasing vacuum to place part\n", getSimulationTime(), state_name[state]);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
                     }
 
@@ -516,14 +564,16 @@ int main()
                         {   //vacuum will apply when the nozzle is empty
                             applyVacuum(RIGHT_NOZZLE);
                             state = VAC_RIGHT_NOZZLE;
-                            printf("Time: %7.2f  New state: %.20s  Applying vacuum\n", getSimulationTime(), state_name[state]);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Applying vacuum\n", getSimulationTime(), state_name[state]);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
                         else if(Right_NozzleStatus == holdingpart)
                         {   //vacuum will release the part when the nozzle is holding something
                             releaseVacuum(RIGHT_NOZZLE);
                             part_placed = TRUE;  //counter to indicate the part has been placed
                             state = VAC_RIGHT_NOZZLE;
-                            printf("Time: %7.2f  New state: %.20s  Releasing vacuum to place part\n", getSimulationTime(), state_name[state]);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Releasing vacuum to place part\n", getSimulationTime(), state_name[state]);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
                     }
 
@@ -535,7 +585,8 @@ int main()
                     {
                         raiseNozzle(LEFT_NOZZLE);
                         state = RAISE_LEFT_NOZZLE;
-                        printf("Time: %7.2f  New state: %.20s  Raising left nozzle\n", getSimulationTime(), state_name[state]);
+                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Raising left nozzle\n", getSimulationTime(), state_name[state]);
+                        write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     }
                     break;
 
@@ -545,7 +596,8 @@ int main()
                     {
                         raiseNozzle(CENTRE_NOZZLE);
                         state = RAISE_CNTR_NOZZLE;
-                        printf("Time: %7.2f  New state: %.20s  Raising centre nozzle\n", getSimulationTime(), state_name[state]);
+                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Raising centre nozzle\n", getSimulationTime(), state_name[state]);
+                        write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     }
                     break;
 
@@ -555,7 +607,8 @@ int main()
                     {
                         raiseNozzle(RIGHT_NOZZLE);
                         state = RAISE_RIGHT_NOZZLE;
-                        printf("Time: %7.2f  New state: %.20s  Raising right nozzle\n", getSimulationTime(), state_name[state]);
+                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Raising right nozzle\n", getSimulationTime(), state_name[state]);
+                        write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     }
                     break;
 
@@ -574,14 +627,16 @@ int main()
                             {  //if there is no other feeder in the file, then go to the camera
                                 setTargetPos(LOOKUP_CAMERA_X,LOOKUP_CAMERA_Y);
                                 state = MOVE_TO_CAMERA;
-                                printf("Time: %7.2f  New state: %.20s  Part acquired, moving to look-up camera\n", getSimulationTime(), state_name[state]);
+                                sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Part acquired, moving to look-up camera\n", getSimulationTime(), state_name[state]);
+                                write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                             }
                             else
                             {
                                 //if there is another feeder waiting, then go to the next feeder in the reordered list, positioned for the centre nozzle
                                 setTargetPos(TAPE_FEEDER_X[pi[component_num].feeder], TAPE_FEEDER_Y[pi[component_num].feeder]);
                                 state = MOVE_TO_FEEDER;
-                                printf("Time: %7.2f  New state: %.20s  Moving to feeder %d\n", getSimulationTime(), state_name[state], pi[component_num].feeder);
+                                sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Moving to feeder %d\n", getSimulationTime(), state_name[state], pi[component_num].feeder);
+                                write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                             }
                         }
 
@@ -590,21 +645,24 @@ int main()
                             Left_NozzleStatus = not_holdingpart; //if the vacuum has just released a part, then the part has been placed and the nozzle is free again
                             part_placed = FALSE;  //reset the variable
                             lookdown_photo = FALSE;  //reset the photo variable
-                            printf("Time: %7.2f             %19s  Part %d placed on PCB successfully\n\n", getSimulationTime(), " ", left_nozzle_part_num);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Part %d placed on PCB successfully\n\n", getSimulationTime(), state_name[state], left_nozzle_part_num);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
 
                             if (Centre_NozzleStatus == holdingpart)
                             {  //if the centre nozzle has a part, then move to the required position on the PCB
                                 req_target = centre_nozzle_part_num; // this is required to obtain the correct alignment errors
                                 setTargetPos(pi[centre_nozzle_part_num].x_target, pi[centre_nozzle_part_num].y_target);
                                 state = MOVE_TO_PCB;
-                                printf("Time: %7.2f  New state: %.20s  Moving to next position x: %3.2f y: %3.2f\n", getSimulationTime(), state_name[state],pi[centre_nozzle_part_num].x_target, pi[centre_nozzle_part_num].y_target);
+                                sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Moving to next position x: %3.2f y: %3.2f\n", getSimulationTime(), state_name[state],pi[centre_nozzle_part_num].x_target, pi[centre_nozzle_part_num].y_target);
+                                write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                             }
 
                             else if(part_counter == number_of_components_to_place)
                             {  //there are no more parts to place, so move gantry to home
                                 setTargetPos(HOME_X,HOME_Y);
                                 state = MOVE_TO_HOME;
-                                printf("Time: %7.2f  New state: %.20s  All parts have been placed! Moving to home\n", getSimulationTime(), state_name[state]);
+                                sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  All parts have been placed! Moving to home\n", getSimulationTime(), state_name[state]);
+                                write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                             }
                         }
                     }
@@ -625,13 +683,15 @@ int main()
                             {   //if no other feeder and no other parts to pick up, then go to the camera
                                 setTargetPos(LOOKUP_CAMERA_X,LOOKUP_CAMERA_Y);  //the gantry will move to the position above the camera
                                 state = MOVE_TO_CAMERA;
-                                printf("Time: %7.2f  New state: %.20s  Part acquired, moving to look-up camera\n", getSimulationTime(), state_name[state]);
+                                sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Part acquired, moving to look-up camera\n", getSimulationTime(), state_name[state]);
+                                write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                             }
                             else
                             {   //if there is another feeder number waiting, then go to the next feeder
                                 setTargetPos(TAPE_FEEDER_X[pi[component_num].feeder]-20, TAPE_FEEDER_Y[pi[component_num].feeder]);  //move to the next feeder for the right nozzle
                                 state = MOVE_TO_FEEDER;
-                                printf("Time: %7.2f  New state: %.20s  Moving to feeder %d\n", getSimulationTime(), state_name[state], pi[component_num].feeder);
+                                sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Moving to feeder %d\n", getSimulationTime(), state_name[state], pi[component_num].feeder);
+                                write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                             }
                         }
 
@@ -640,21 +700,24 @@ int main()
                             Centre_NozzleStatus = not_holdingpart; //if the vacuum has just released a part, then the part has been placed and the nozzle is free again
                             lookdown_photo = FALSE;  //reset the photo variabla
                             part_placed = FALSE;  //reset the variable
-                            printf("Time: %7.2f             %19s  Part %d placed on PCB successfully\n\n", getSimulationTime(), state_name[state], centre_nozzle_part_num);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Part %d placed on PCB successfully\n\n", getSimulationTime(), state_name[state], centre_nozzle_part_num);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
 
                             if (Right_NozzleStatus == holdingpart)
                             {  //if the right nozzle has a part then, move to the required position on the PCB
                                 req_target = right_nozzle_part_num;  // this is required in order to calculate preplace errors
                                 setTargetPos(pi[right_nozzle_part_num].x_target, pi[right_nozzle_part_num].y_target); //right nozzle holding part_counter-1
                                 state = MOVE_TO_PCB;
-                                printf("Time: %7.2f  New state: %.20s  Moving to next position x: %3.2f y: %3.2f\n", getSimulationTime(), state_name[state],pi[right_nozzle_part_num].x_target, pi[right_nozzle_part_num].y_target);
+                                sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Moving to next position x: %3.2f y: %3.2f\n", getSimulationTime(), state_name[state],pi[right_nozzle_part_num].x_target, pi[right_nozzle_part_num].y_target);
+                                write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                             }
 
                             else if(part_counter == number_of_components_to_place)
                             {  //if there are no more parts to place then go to home
                                 setTargetPos(HOME_X,HOME_Y);
                                 state = MOVE_TO_HOME;
-                                printf("Time: %7.2f  New state: %.20s  All parts have been placed! Moving to home\n", getSimulationTime(), state_name[state]);
+                                sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  All parts have been placed! Moving to home\n", getSimulationTime(), state_name[state]);
+                                write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                             }
 
                         }
@@ -674,7 +737,8 @@ int main()
                             nozzle_errors_to_check++;  //right nozzle needs to be checked for alignment errors
                             setTargetPos(LOOKUP_CAMERA_X,LOOKUP_CAMERA_Y);  //the right nozzle is the last to pick up a part, so the gantry will move to the camera
                             state = MOVE_TO_CAMERA;
-                            printf("Time: %7.2f  New state: %.20s  All parts acquired, moving to look-up camera\n", getSimulationTime(), state_name[state]);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  All parts acquired, moving to look-up camera\n", getSimulationTime(), state_name[state]);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
 
                         else if (part_placed==TRUE)
@@ -682,19 +746,21 @@ int main()
                             Right_NozzleStatus = not_holdingpart; //if the vacuum has just released a part, then the part has been placed and the nozzle is free again
                             lookdown_photo = FALSE;  //reset the photo variable
                             part_placed = FALSE;  //reset the variable
-                            printf("Time: %7.2f             %19s  Part %d placed on PCB successfully\n\n", getSimulationTime(), state_name[state], right_nozzle_part_num);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Part %d placed on PCB successfully\n\n", getSimulationTime(), state_name[state], right_nozzle_part_num);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
 
                             if(part_counter == number_of_components_to_place)
                             {  //if there are no more parts to place, then go to home
                                 setTargetPos(HOME_X,HOME_Y);
                                 state = MOVE_TO_HOME;
-                                printf("Time: %7.2f  New state: %.20s  Moving to home.\n", getSimulationTime(), state_name[state]);
+                                sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Moving to home.\n", getSimulationTime(), state_name[state]);
+                                write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                             }
                             else
                             {   // once the part is placed, if there are more parts then go to home to obtain details for the next feeder
                                 state = HOME;
-                                printf("Time: %7.2f  New state: %.20s  Moving to next feeder\n\n", getSimulationTime(), state_name[state]);
-
+                                sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Moving to next feeder\n\n", getSimulationTime(), state_name[state]);
+                                write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                             }
 
                         }
@@ -707,7 +773,8 @@ int main()
                     {
                         takePhoto(PHOTO_LOOKUP);
                         state = LOOK_UP_PHOTO;
-                        printf("Time: %7.2f  New state: %.20s  Arrived at camera. Taking look-up photo of part\n", getSimulationTime(), state_name[state]);
+                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Arrived at camera. Taking look-up photo of part\n", getSimulationTime(), state_name[state]);
+                        write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     }
                     break;
 
@@ -716,7 +783,8 @@ int main()
                     {   //once look-up photo is taken, move on to calculate errors
                         lookup_photo = TRUE;
                         state = CHECK_ERROR;
-                        printf("Time: %7.2f  New state: %.20s  Look-up photo acquired. Checking errors and calculating corrections\n", getSimulationTime(), state_name[state]);
+                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Look-up photo acquired. Checking errors and calculating corrections\n", getSimulationTime(), state_name[state]);
+                        write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     }
                     break;
 
@@ -725,7 +793,8 @@ int main()
                     if (isSimulatorReadyForNextInstruction())
                     {
                         state = LOOK_DOWN_PHOTO;
-                        printf("Time: %7.2f  New state: %.20s  Now at PCB. Taking look-down photo\n", getSimulationTime(), state_name[state]);
+                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Now at PCB. Taking look-down photo\n", getSimulationTime(), state_name[state]);
+                        write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     }
                     break;
 
@@ -734,7 +803,8 @@ int main()
                     takePhoto(PHOTO_LOOKDOWN);
                     lookdown_photo = TRUE;
                     state = CHECK_ERROR;
-                    printf("Time: %7.2f  New state: %.20s  Look-down photo acquired. Checking for errors in gantry alignment\n", getSimulationTime(), state_name[state]);
+                    sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Look-down photo acquired. Checking for errors in gantry alignment\n", getSimulationTime(), state_name[state]);
+                    write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     break;
 
                 case CHECK_ERROR:
@@ -745,26 +815,32 @@ int main()
                         {   //since the right nozzle is last to pick up a part, it is the first to be corrected
                             double errortheta = getPickErrorTheta(RIGHT_NOZZLE);  //acquire the part misalignment from the look-up photo
                             requested_theta_right = pi[right_nozzle_part_num].theta_target - errortheta;  //calculate misalignment of the part on the nozzle
-                            printf("Time: %7.2f             %19s  Right part misalignment error: %3.2f  Correction required: %3.2f degrees\n", getSimulationTime()," ", errortheta, requested_theta_right);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Right part misalignment error: %3.2f  Correction required: %3.2f degrees\n", getSimulationTime(), state_name[state], errortheta, requested_theta_right);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                             state = FIX_NOZZLE_ERROR;
-                            printf("Time: %7.2f  New state: %.20s  Correction made to right nozzle for part alignment\n", getSimulationTime(), state_name[state]);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Correction made to right nozzle for part alignment\n", getSimulationTime(), state_name[state]);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
                         else if (nozzle_errors_to_check == 2)
                         {  //the centre nozzle is second to pick a part and is second to have the alignment corrected
                             double errortheta = getPickErrorTheta(CENTRE_NOZZLE);  //acquire the part misalignment from the look-up photo
                             requested_theta_centre = pi[centre_nozzle_part_num].theta_target - errortheta;  //calculate misalignment of the part on the nozzle
-                            printf("Time: %7.2f             %19s  Centre part misalignment error: %3.2f  Correction required: %3.2f degrees\n", getSimulationTime()," ", errortheta, requested_theta_centre);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Centre part misalignment error: %3.2f  Correction required: %3.2f degrees\n", getSimulationTime(),state_name[state], errortheta, requested_theta_centre);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                             state = FIX_NOZZLE_ERROR;
-                            printf("Time: %7.2f  New state: %.20s  Correction made to centre nozzle for part alignment\n", getSimulationTime(), state_name[state]);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Correction made to centre nozzle for part alignment\n", getSimulationTime(), state_name[state]);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
 
                         else if (nozzle_errors_to_check == 1)
                         {  //the left nozzle was first to pick up a part, and if it is the only nozzle used then only one error to check
                             double errortheta = getPickErrorTheta(LEFT_NOZZLE);  //acquire the part misalignment from the look-up photo
                             requested_theta_left = pi[left_nozzle_part_num].theta_target - errortheta;  //calculate misalignment of the part on the nozzle
-                            printf("Time: %7.2f             %19s  Left part misalignment error: %3.2f  Correction required: %3.2f degrees\n", getSimulationTime()," ", errortheta, requested_theta_left);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Left part misalignment error: %3.2f  Correction required: %3.2f degrees\n", getSimulationTime(),state_name[state], errortheta, requested_theta_left);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                             state = FIX_NOZZLE_ERROR;
-                            printf("Time: %7.2f  New state: %.20s  Correction made to left nozzle for part alignment\n", getSimulationTime(), state_name[state]);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Correction made to left nozzle for part alignment\n", getSimulationTime(), state_name[state]);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
 
                         else
@@ -773,7 +849,8 @@ int main()
                             req_target = left_nozzle_part_num;  //this is needed to obtain and calculate the relevant misalignment errors
                             setTargetPos(pi[left_nozzle_part_num].x_target, pi[left_nozzle_part_num].y_target);
                             state = MOVE_TO_PCB;
-                            printf("Time: %7.2f  New state: %.20s  No furthers errors. Moving to PCB\n", getSimulationTime(), state_name[state]);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  No furthers errors. Moving to PCB\n", getSimulationTime(), state_name[state]);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
                     }
 
@@ -781,10 +858,12 @@ int main()
                     {  //calculate the difference  between the required target and the error of the gantry over the PCB
                         preplace_diff_x = pi[req_target].x_target - (pi[req_target].x_target+getPreplaceErrorX()); //calculate the difference between the required x position and the actual x position of the gantry
                         preplace_diff_y = pi[req_target].y_target - (pi[req_target].y_target+getPreplaceErrorY()); //calculate the difference between the required y position and the actual y position of the gantry
-                        printf("Time: %7.2f             %19s  Preplace misalignment error: x=%3.2f y=%3.2f\n", getSimulationTime(), " ", getPreplaceErrorX(), getPreplaceErrorY());
+                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Preplace misalignment error: x=%3.2f y=%3.2f\n", getSimulationTime(), state_name[state], getPreplaceErrorX(), getPreplaceErrorY());
+                        write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         amendPos(preplace_diff_x, preplace_diff_y);  //fix the gantry preplace position over the PCB
                         state = FIX_PREPLACE_ERROR;
-                        printf("Time: %7.2f  New state: %.20s  Correction made to gantry position\n", getSimulationTime(), state_name[state]);
+                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Correction made to gantry position\n", getSimulationTime(), state_name[state]);
+                        write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     }
 
                     break;
@@ -797,21 +876,24 @@ int main()
                             rotateNozzle(RIGHT_NOZZLE, requested_theta_right);  //rotate the nozzle by the required calculated angle theta
                             nozzle_errors_to_check--;  //decrement to track the errors needed for correction
                             state = CHECK_ERROR;
-                            printf("Time: %7.2f  New state: %.20s  Checking for errors...\n", getSimulationTime(),state_name[state]);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Checking for errors...\n", getSimulationTime(),state_name[state]);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
                         else if (nozzle_errors_to_check == 2)
                         {   //centre nozzle is second to be corrected
                             rotateNozzle(CENTRE_NOZZLE, requested_theta_centre);  //rotate the nozzle by the required calculated angle theta
                             nozzle_errors_to_check--;
                             state = CHECK_ERROR;
-                            printf("Time: %7.2f  New state: %.20s  Checking for errors...\n", getSimulationTime(),state_name[state]);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Checking for errors...\n", getSimulationTime(),state_name[state]);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
                         else if (nozzle_errors_to_check == 1)
                         {   //since the left nozzle was first to pick up a part, it is last to be corrected. Applies if it is the only nozzle in use for a singular part
                             rotateNozzle(LEFT_NOZZLE, requested_theta_left);  //rotate the nozzle by the required calculated angle theta
                             nozzle_errors_to_check--;
                             state = CHECK_ERROR;
-                            printf("Time: %7.2f  New state: %.20s  Checking for errors...\n", getSimulationTime(),state_name[state]);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Checking for errors...\n", getSimulationTime(),state_name[state]);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
                     }
                     break;
@@ -823,19 +905,22 @@ int main()
                         {  //only need to apply correction if the nozzle is holding a part
                             lowerNozzle(LEFT_NOZZLE);
                             state = LOWER_LEFT_NOZZLE;
-                            printf("Time: %7.2f  New state: %.20s  Now lowering left nozzle to place part on PCB\n", getSimulationTime(),state_name[state]);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Now lowering left nozzle to place part on PCB\n", getSimulationTime(),state_name[state]);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
                         else if (Centre_NozzleStatus == holdingpart)
                         {//only need to apply correction if the nozzle is holding a part
                             lowerNozzle(CENTRE_NOZZLE);
                             state = LOWER_CNTR_NOZZLE;
-                            printf("Time: %7.2f  New state: %.20s  Now lowering centre nozzle to place part on PCB\n", getSimulationTime(),state_name[state]);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Now lowering centre nozzle to place part on PCB\n", getSimulationTime(),state_name[state]);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
                         else if (Right_NozzleStatus == holdingpart)
                         {//only need to apply correction if the nozzle is holding a part
                             lowerNozzle(RIGHT_NOZZLE);
                             state = LOWER_RIGHT_NOZZLE;
-                            printf("Time: %7.2f  New state: %.20s  Now lowering right nozzle to place part on PCB\n", getSimulationTime(),state_name[state]);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Now lowering right nozzle to place part on PCB\n", getSimulationTime(),state_name[state]);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
 
                     }
@@ -845,7 +930,8 @@ int main()
                     if (isSimulatorReadyForNextInstruction())
                     {   //moves the gantry to home position once placement of all components is complete
                         state = HOME;
-                        printf("Time: %7.2f  New state: %.20s  Gantry in Home position. Placement complete. Press q to quit.\n", getSimulationTime(), state_name[state]);
+                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Gantry in Home position. Placement complete. Press q to quit.\n", getSimulationTime(), state_name[state]);
+                        write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     }
                     break;
 
@@ -853,9 +939,11 @@ int main()
             sleepMilliseconds((long) 1000 / POLL_LOOP_RATE);
             }//closing while loop
         }
-
-
+    sprintf(Contrl_str_array, "Controller: Terminating...\n");
+    write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
+    close(writeContrlToDisplayFd);
     pnpClose();
-    return 0;
+    //return 0;
+    exit(30);
 }
 

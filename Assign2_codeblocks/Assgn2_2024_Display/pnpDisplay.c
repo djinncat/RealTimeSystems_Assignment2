@@ -2,16 +2,36 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include "pnpDisplay.h"
 
-#define READ_BLOCK_SIZE 100
+#define READ_BLOCK_SIZE 200
 
 int main(int argc, char *argv[])
 {
+    PnP *pnp;
+        /* initialize file for memory mapping */
+    int fd = open(MEMORY_MAPPED_FILE, (O_CREAT | O_RDWR), 0666);
+    if (fd < 0)
+    {
+        perror("creation/opening of memory mapped file failed");
+        exit(1);
+    }
+    ftruncate(fd, sizeof(PnP));
+
+    /* map the file to memory */
+    pnp = (PnP *)mmap(0, sizeof(PnP), (PROT_READ | PROT_WRITE), MAP_SHARED, fd, (off_t)0);
+    if (pnp == MAP_FAILED)
+    {
+        perror("memory mapping of file failed");
+        close(fd);
+        exit(2);
+    }
+
     char readBufferStartup[READ_BLOCK_SIZE+1], readBufferSim[READ_BLOCK_SIZE+1], readBufferContrl[READ_BLOCK_SIZE+1];
 
     ssize_t bytesReadStartup, bytesReadSim, bytesReadContrl;
     printf("I am Display child printing on my own with PID %d\n", getpid());
-    // set tup the file descriptors for each of the other processes to communicate
+    // set up the file descriptors for each of the other processes to communicate
     int readStartupFd = atoi(argv[1]);
     int readSimFd = atoi(argv[2]);
     int readContrlFd = atoi(argv[3]);
@@ -27,21 +47,21 @@ int main(int argc, char *argv[])
         if (bytesReadStartup > 0)
         {
             readBufferStartup[bytesReadStartup] = '\0';
-            printf("%s\n", readBufferStartup);
+            printf("Startup: %s", readBufferStartup);
             bytesReadStartup = read(readStartupFd, readBufferStartup, READ_BLOCK_SIZE);
         }
 
         if (bytesReadContrl > 0)
         {
             readBufferContrl[bytesReadContrl] = '\0';
-            printf("%s\n", readBufferContrl);
+            printf("Controller: %s", readBufferContrl);
             bytesReadContrl = read(readContrlFd, readBufferContrl, READ_BLOCK_SIZE);
         }
 
         if (bytesReadSim > 0)
         {
             readBufferSim[bytesReadSim] = '\0';
-            printf("%s\n", readBufferSim);
+            printf("Simulator: %s", readBufferSim);
             bytesReadSim = read(readSimFd, readBufferSim, READ_BLOCK_SIZE);
         }
 

@@ -16,6 +16,7 @@
 #include <pthread.h>
 #include <termios.h>
 #include <math.h>
+#include <string.h>
 
 #define MANUAL_CONTROL 1
 #define AUTONOMOUS_CONTROL 2

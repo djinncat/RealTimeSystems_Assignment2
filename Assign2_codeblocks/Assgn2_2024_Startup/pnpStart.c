@@ -44,21 +44,18 @@ int main()
     //sem_t *sem_1 = sem_open("/sem_1", O_CREAT, 0666, 1);
     //sem_t *sem_2 = sem_open("/sem_2", O_CREAT, 0666, 0);
 
-    //pipe details
-
     char *strFromStartup;
     char Startup_str_array[100];
     char pipeStartupToDisplayReadFdStr[10];  //used to allow display end of pipe to read from startup process
     char pipeSimToDisplayReadFdStr[10];  //used to allow display end of pipe to read from simulator process
     char pipeContrlToDisplayReadFdStr[10];  //used to allow display end of pipe to read from controller process
     char pipeSimToDisplayWriteFdStr[10];  // used to allow simulator to write to display pipe
-
-    //end pipe details
+    char pipeContrlToDisplayWriteFdStr[10]; // used to allow controller to write to display pipe
 
     int DisplayStatus; //for parent to monitor the status of the display child
     int status; //for parent to monitor the status of the simulator child
 
-    //set up pipe before fork
+    //set up pipes before fork
     if (pipe(pipe_Startup_to_Display) < 0 || pipe(pipe_Simulator_to_Display) < 0 || pipe(pipe_Controller_to_Display) < 0)
     {
         perror("Pipe creation failed");
@@ -75,6 +72,7 @@ int main()
     sprintf(pipeSimToDisplayReadFdStr, "%d", pipe_Simulator_to_Display[READ]);
     sprintf(pipeContrlToDisplayReadFdStr, "%d", pipe_Controller_to_Display[READ]);
     sprintf(pipeSimToDisplayWriteFdStr, "%d", pipe_Simulator_to_Display[WRITE]);
+    sprintf(pipeContrlToDisplayWriteFdStr, "%d", pipe_Controller_to_Display[WRITE]);
 
     for (int count = 0; count < NUMBER_OF_CHILDREN; count++)
     {
@@ -92,7 +90,7 @@ int main()
                     execl("..\\Assgn2_2024_Display\\bin\\Release\\Assgn2_2024_Display", "Assgn2_2024_Display", pipeStartupToDisplayReadFdStr, pipeSimToDisplayReadFdStr, pipeContrlToDisplayReadFdStr, (char *) NULL);
                     perror("Display overlay failed: ");
                     exit(5);
-/*
+/* USED FOR TESTING COMMUNICATION BETWEEN CHILDREN BEFORE OVERLAY WAS SET UP
                     char readBufferStartup[100+1], readBufferSim[100+1], readBufferContrl[100+1];
                     ssize_t bytesReadStartup, bytesReadSim, bytesReadContrl;
                     printf("Display: Waiting to read and print message from pipes\n");
@@ -129,7 +127,7 @@ int main()
                     close(pipe_Simulator_to_Display[READ]);
                     close(pipe_Controller_to_Display[READ]);
                     exit(10);
-*/
+********************************************************************** */
                 }
 
                 if(count == 1)  // second child is the simulator
@@ -141,12 +139,12 @@ int main()
                     close(pipe_Startup_to_Display[WRITE]);
                     close(pipe_Controller_to_Display[READ]);  //does not need access to the controller pipe
                     close(pipe_Controller_to_Display[WRITE]);
-                    sprintf(Sim_str_array, "Simulator process created with PID %d. Going to overlay\n", getpid());
+                    sprintf(Sim_str_array, "Process created with PID %d. Going to overlay\n", getpid());
                     write(pipe_Simulator_to_Display[WRITE], Sim_str_array, strlen(Sim_str_array));
                     execl("..\\Assgn2_2024_Simulator\\bin\\Release\\Assgn2_2024_Simulator", "Assgn2_2024_Simulator", pipeSimToDisplayWriteFdStr, (char *) NULL);
                     perror("Simulator overlay failed: ");
                     exit(5);
-
+//   USED FOR TESTING COMMUNICATION BETWEEN CHILDREN BEFORE OVERLAY WAS SET UP
                     //printf("Simulator: About to write message to pipe\n");
 //                    write(pipe_Simulator_to_Display[WRITE], strFromSim, strlen(strFromSim));
 //                    strFromSim = "Simulator: Terminating...\n";
@@ -158,25 +156,25 @@ int main()
 
                 if(count == 2)  // final child is the Controller
                 {
-                    char *strFromContrl = "Message through pipe from Controller to Display\n";
+                    //char *strFromContrl = "Message through pipe from Controller to Display\n";
                     char Contrl_str_array[100];
                     close(pipe_Controller_to_Display[READ]);  //Controller will only write to pipe
                     close(pipe_Startup_to_Display[READ]);  // does not need access to the startup pipe
                     close(pipe_Startup_to_Display[WRITE]);
                     close(pipe_Simulator_to_Display[READ]);  //does not need access to the simulator pipe
                     close(pipe_Simulator_to_Display[WRITE]);
-                    sprintf(Contrl_str_array, "Controller process created with PID %d. Going to overlay\n", getpid());
+                    sprintf(Contrl_str_array, "Process created with PID %d. Going to overlay\n", getpid());
                     write(pipe_Controller_to_Display[WRITE], Contrl_str_array, strlen(Contrl_str_array));
-                    //execl("..\\Assgn2_2024_Controller\\bin\\Release\\Assgn2_2024_Controller", "Assgn2_2024_Controller", (char *) NULL);
-                    //perror("Controller overlay failed: ");
-                    //exit(5);
-
+                    execl("..\\Assgn2_2024_Controller\\bin\\Release\\Assgn2_2024_Controller", "Assgn2_2024_Controller", pipeContrlToDisplayWriteFdStr, (char *) NULL);
+                    perror("Controller overlay failed: ");
+                    exit(5);
+//  USED TO TEST COMMUNICATION WITH CHILDREN BEFORE OVERLAY WAS SET UP
                     //printf("Controller: About to write message to pipe\n");
-                    write(pipe_Controller_to_Display[WRITE], strFromContrl, strlen(strFromContrl));
-                    strFromContrl = "Controller: Terminating...\n";
-                    write(pipe_Controller_to_Display[WRITE], strFromContrl, strlen(strFromContrl));
-                    close(pipe_Controller_to_Display[WRITE]);
-                    exit(30);
+//                    write(pipe_Controller_to_Display[WRITE], strFromContrl, strlen(strFromContrl));
+//                    strFromContrl = "Controller: Terminating...\n";
+//                    write(pipe_Controller_to_Display[WRITE], strFromContrl, strlen(strFromContrl));
+//                    close(pipe_Controller_to_Display[WRITE]);
+//                    exit(30);
                 }
 
 
@@ -189,24 +187,24 @@ int main()
                 if(count == 0) // after spawning display, startup and monitor comes here
                 {
                     close(pipe_Startup_to_Display[READ]); //parent will only write to pipe, so close read end
-                    strFromStartup = "Startup: Now sending messages through the pipe to Display\n";
-                    write(pipe_Startup_to_Display[WRITE], strFromStartup, strlen(strFromStartup));
+                    //strFromStartup = "Startup: Now sending messages through the pipe to Display\n";
+                    //write(pipe_Startup_to_Display[WRITE], strFromStartup, strlen(strFromStartup));
                 }
 
                 if(count == 1) //after spawning simulator
                 {
                     close(pipe_Simulator_to_Display[READ]);  //does not need access to the simulator pipe
                     close(pipe_Simulator_to_Display[WRITE]);
-                    strFromStartup = "Startup: Sending another message via pipe to Display\n";
-                    write(pipe_Startup_to_Display[WRITE], strFromStartup, strlen(strFromStartup));
+                    //strFromStartup = "Startup: Sending another message via pipe to Display\n";
+                    //write(pipe_Startup_to_Display[WRITE], strFromStartup, strlen(strFromStartup));
                 }
 
                 if(count == 2)  // after spawning controller
                 {
                     close(pipe_Controller_to_Display[READ]);  //does not need access to the controller pipe
                     close(pipe_Controller_to_Display[WRITE]);
-                    strFromStartup = "Startup: Sending yet another message to Display\n";
-                    write(pipe_Startup_to_Display[WRITE], strFromStartup, strlen(strFromStartup));
+                    //strFromStartup = "Startup: Sending yet another message to Display\n";
+                    //write(pipe_Startup_to_Display[WRITE], strFromStartup, strlen(strFromStartup));
                 }
 
         }     // end switch
@@ -214,11 +212,12 @@ int main()
     }//end for loop
 
 
-    strFromStartup = "Startup: Process spawning completed\n";
+    strFromStartup = "Process spawning completed\n";
     write(pipe_Startup_to_Display[WRITE], strFromStartup, strlen(strFromStartup));
 
-    strFromStartup = "Startup: Waiting for children to terminate\n";
+    strFromStartup = "Waiting for children to terminate\n";
     write(pipe_Startup_to_Display[WRITE], strFromStartup, strlen(strFromStartup));
+//exit(0);
         /*
         Code to monitor the other child processes terminating. Close the Startup_to_Display pipe
         once all other processes have terminated. Display will be the final child to terminate
@@ -227,7 +226,7 @@ int main()
     for (int count = 0; count < NUMBER_OF_CHILDREN-1; count++)
     {
         pid_t return_pid = wait(&status);
-        sprintf(Startup_str_array, "Startup: Process with PID %d terminated with status code %d\n", return_pid, status>>8);
+        sprintf(Startup_str_array, "Process with PID %d terminated with status code %d\n", return_pid, status>>8);
         write(pipe_Startup_to_Display[WRITE], Startup_str_array, strlen(Startup_str_array));
     }
 
