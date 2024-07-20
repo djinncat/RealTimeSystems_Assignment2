@@ -44,16 +44,16 @@ int main()
     //sem_t *sem_1 = sem_open("/sem_1", O_CREAT, 0666, 1);
     //sem_t *sem_2 = sem_open("/sem_2", O_CREAT, 0666, 0);
 
-    char *strFromStartup;
-    char Startup_str_array[100];
+//    char *strFromStartup;
+//    char Startup_str_array[100];
     char pipeStartupToDisplayReadFdStr[10];  //used to allow display end of pipe to read from startup process
     char pipeSimToDisplayReadFdStr[10];  //used to allow display end of pipe to read from simulator process
     char pipeContrlToDisplayReadFdStr[10];  //used to allow display end of pipe to read from controller process
     char pipeSimToDisplayWriteFdStr[10];  // used to allow simulator to write to display pipe
     char pipeContrlToDisplayWriteFdStr[10]; // used to allow controller to write to display pipe
 
-    int DisplayStatus; //for parent to monitor the status of the display child
-    int status; //for parent to monitor the status of the simulator child
+//    int DisplayStatus; //for parent to monitor the status of the display child
+    int Status; //for parent to monitor the status of the simulator child
 
     //set up pipes before fork
     if (pipe(pipe_Startup_to_Display) < 0 || pipe(pipe_Simulator_to_Display) < 0 || pipe(pipe_Controller_to_Display) < 0)
@@ -212,27 +212,19 @@ int main()
     }//end for loop
 
 
-    strFromStartup = "Process spawning completed\n";
-    write(pipe_Startup_to_Display[WRITE], strFromStartup, strlen(strFromStartup));
+//    strFromStartup = "Process spawning completed\n";
+//    write(pipe_Startup_to_Display[WRITE], strFromStartup, strlen(strFromStartup));
+//
+//    strFromStartup = "Waiting for children to terminate\n";
+//    write(pipe_Startup_to_Display[WRITE], strFromStartup, strlen(strFromStartup));
 
-    strFromStartup = "Waiting for children to terminate\n";
-    write(pipe_Startup_to_Display[WRITE], strFromStartup, strlen(strFromStartup));
-//exit(0);
-        /*
-        Code to monitor the other child processes terminating. Close the Startup_to_Display pipe
-        once all other processes have terminated. Display will be the final child to terminate
-        since all the pipes need to be closed.
-        */
-    for (int count = 0; count < NUMBER_OF_CHILDREN-1; count++)
+    close(pipe_Startup_to_Display[WRITE]);  // pipe needs to be closed to allow display to print while waiting for children to terminate
+
+    for (int count = 0; count < NUMBER_OF_CHILDREN; count++)
     {
-        pid_t return_pid = wait(&status);
-        sprintf(Startup_str_array, "Process with PID %d terminated with status code %d\n", return_pid, status>>8);
-        write(pipe_Startup_to_Display[WRITE], Startup_str_array, strlen(Startup_str_array));
+        pid_t return_pid = wait(&Status);
+        printf("Startup: Process with PID %d terminated with status code %d\n", return_pid, Status>>8);
     }
-
-    close(pipe_Startup_to_Display[WRITE]);
-    pid_t DisplayPID = wait(&DisplayStatus); // waiting for the display process to exit
-    printf("Startup: Process with PID %d terminated with status code %d.\n", DisplayPID, DisplayStatus>>8);
-    printf("Startup: Program has ended.");
+    printf("Startup: Program has ended. Press any key to exit.\n");
     exit(0);
 }//end main

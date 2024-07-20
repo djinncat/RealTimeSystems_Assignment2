@@ -72,14 +72,16 @@ int main(int argc, char *argv[])
     sleep(1);
     char Contrl_str_array[150];
     int writeContrlToDisplayFd = atoi(argv[1]);  // the file descriptor to write from controller to Display
-    sprintf(Contrl_str_array, "Time: %7.2f  Controller started successfully!\n", 0.0);
-    write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
+
 //    sprintf(Contrl_str_array, "Controller: Terminating...\n");
 //    write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
 //    close(writeContrlToDisplayFd);
 //    exit(30);
 
     pnpOpen();
+
+    sprintf(Contrl_str_array, "Time: %7.2f  Controller started successfully!\n", getSimulationTime());
+    write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
 
     int operation_mode, number_of_components_to_place, res;
     PlacementInfo pi[MAX_NUMBER_OF_COMPONENTS_TO_PLACE];
@@ -471,8 +473,12 @@ int main(int argc, char *argv[])
                     {
                         component_num = component_list[part_counter];  //hold the value of the part to be placed. The counter starts at zero
                         if(part_counter == number_of_components_to_place)
-                        {
-                          //Do nothing. Program is complete, wait for user to quit program.
+                        {  // program is complete, terminate program
+                            sprintf(Contrl_str_array, "Time: %7.2f  Terminating...\n", getSimulationTime());
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
+                            close(writeContrlToDisplayFd);
+                            pnpClose();
+                            exit(30);
                         }
                         else
                         { //go to the first feeder in the list, +20 for the left nozzle positioning
@@ -930,7 +936,7 @@ int main(int argc, char *argv[])
                     if (isSimulatorReadyForNextInstruction())
                     {   //moves the gantry to home position once placement of all components is complete
                         state = HOME;
-                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Gantry in Home position. Placement complete. Press q to quit.\n", getSimulationTime(), state_name[state]);
+                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Gantry in Home position. Placement complete.\n", getSimulationTime(), state_name[state]);
                         write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     }
                     break;
@@ -939,7 +945,7 @@ int main(int argc, char *argv[])
             sleepMilliseconds((long) 1000 / POLL_LOOP_RATE);
             }//closing while loop
         }
-    sprintf(Contrl_str_array, "Controller: Terminating...\n");
+    sprintf(Contrl_str_array, "Time: %7.2f  Terminating...\n", getSimulationTime());
     write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
     close(writeContrlToDisplayFd);
     pnpClose();

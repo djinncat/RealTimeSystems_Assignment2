@@ -4,12 +4,17 @@
 #include <string.h>
 #include "pnpDisplay.h"
 
-#define READ_BLOCK_SIZE 200
+#define READ_BLOCK_SIZE 50
+    PnP *pnp;
+double simulation_time()
+{
+    return pnp->sim_time;
+}
+
 
 int main(int argc, char *argv[])
 {
-    PnP *pnp;
-        /* initialize file for memory mapping */
+
     int fd = open(MEMORY_MAPPED_FILE, (O_CREAT | O_RDWR), 0666);
     if (fd < 0)
     {
@@ -40,28 +45,50 @@ int main(int argc, char *argv[])
     bytesReadSim = read(readSimFd, readBufferSim, READ_BLOCK_SIZE);
     bytesReadContrl = read(readContrlFd, readBufferContrl, READ_BLOCK_SIZE);
 
-    printf("Display: I will receive and display all messages from now on\n");
+    printf("Display: Time: %7.2f  I will receive and display all messages from now on\n", simulation_time());
 
     while (bytesReadStartup > 0 || bytesReadSim > 0 || bytesReadContrl > 0)
     {
         if (bytesReadStartup > 0)
         {
+            printf("Startup:   \n");
+            while(readBufferStartup[bytesReadStartup-1]!='\n')
+            {  // continue printing until the new line is specified
+                readBufferStartup[bytesReadStartup] = '\0';
+                printf("%s", readBufferStartup);
+                bytesReadStartup = read(readStartupFd, readBufferStartup, READ_BLOCK_SIZE);
+            }
+
             readBufferStartup[bytesReadStartup] = '\0';
-            printf("Startup: %s", readBufferStartup);
+            printf("%s", readBufferStartup);
             bytesReadStartup = read(readStartupFd, readBufferStartup, READ_BLOCK_SIZE);
         }
 
         if (bytesReadContrl > 0)
         {
+            printf("Controller: \n");
+            while (readBufferContrl[bytesReadContrl-1] != '\n')
+            {
+                readBufferContrl[bytesReadContrl] = '\0';
+                printf("%s", readBufferContrl);
+                bytesReadContrl = read(readContrlFd, readBufferContrl, READ_BLOCK_SIZE);
+            }
             readBufferContrl[bytesReadContrl] = '\0';
-            printf("Controller: %s", readBufferContrl);
+            printf("%s", readBufferContrl);
             bytesReadContrl = read(readContrlFd, readBufferContrl, READ_BLOCK_SIZE);
         }
 
         if (bytesReadSim > 0)
         {
+            printf("Simulator:  \n");
+            while (readBufferSim[bytesReadSim-1] != '\n')
+            {
+                readBufferSim[bytesReadSim] = '\0';
+                printf("%s", readBufferSim);
+                bytesReadSim = read(readSimFd, readBufferSim, READ_BLOCK_SIZE);
+            }
             readBufferSim[bytesReadSim] = '\0';
-            printf("Simulator: %s", readBufferSim);
+            printf("%s", readBufferSim);
             bytesReadSim = read(readSimFd, readBufferSim, READ_BLOCK_SIZE);
         }
 
@@ -69,8 +96,10 @@ int main(int argc, char *argv[])
 
     // the writing end of the pipe has been closed and there are no
     // more bytes to read
-    printf("Display: Finished reading from pipe\n");
-    printf("Display: Terminating...\n");
+    printf("Display:    Time: %7.2f  Finished reading from pipe\n", simulation_time());
+    printf("Display:          %10s  Terminating...\n", " ");
+    munmap(pnp, sizeof(PnP));
+    close(fd);
     close(readStartupFd);  //close all the pipes and terminate
     close(readSimFd);
     close(readContrlFd);

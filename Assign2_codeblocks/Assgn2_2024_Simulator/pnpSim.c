@@ -18,7 +18,7 @@
 int main(int argc, char *argv[])
 {
 
-    char Sim_str_array[100];
+    char Sim_str_array[145];
     char *strFromSim;
     int writeSimToDisplayFd = atoi(argv[1]);  // the file descriptor to write from Simulator to Display
 //    strFromSim = "Simulator: test message\n";
@@ -456,8 +456,8 @@ int main(int argc, char *argv[])
         /* update shared memory for simulation time (since this must always be updated every poll cycle) */
         pnp -> sim_time = sim_time;
     }
-    strFromSim = "Simulator: Terminating...\n";
-    write(writeSimToDisplayFd, strFromSim, strlen(strFromSim));
+    sprintf(Sim_str_array, "Time: %7.2f  Terminating...\n", sim_time);
+    write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
     close(writeSimToDisplayFd);
     /* unmap memory and close file descriptor before exit */
     sleep(1);
