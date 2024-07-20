@@ -45,7 +45,7 @@ int main()
     //sem_t *sem_2 = sem_open("/sem_2", O_CREAT, 0666, 0);
 
 //    char *strFromStartup;
-//    char Startup_str_array[100];
+    char Startup_str_array[100];
     char pipeStartupToDisplayReadFdStr[10];  //used to allow display end of pipe to read from startup process
     char pipeSimToDisplayReadFdStr[10];  //used to allow display end of pipe to read from simulator process
     char pipeContrlToDisplayReadFdStr[10];  //used to allow display end of pipe to read from controller process
@@ -83,7 +83,7 @@ int main()
             case CHILD:
                 if (count == 0)  //first child is the display process
                 {
-                    printf("Display process created with PID %d. Going to overlay\n", getpid());
+                    printf("STARTUP\nDisplay process created with PID %d\n", getpid());
                     close(pipe_Startup_to_Display[WRITE]); //display will only be reading through the pipes
                     close(pipe_Simulator_to_Display[WRITE]);
                     close(pipe_Controller_to_Display[WRITE]);
@@ -133,14 +133,15 @@ int main()
                 if(count == 1)  // second child is the simulator
                 {
                     //char *strFromSim = "Message through pipe from Sim to Display\n";
-                    char Sim_str_array[100];  // required to use sprintf as pointer will not work
-                    close(pipe_Simulator_to_Display[READ]);  //Simulator will only write to pipe
-                    close(pipe_Startup_to_Display[READ]);  // does not need access to the startup pipe
+                    //char Sim_str_array[100];  // required to use sprintf as pointer will not work
+                    sprintf(Startup_str_array, "Simulator process created with PID %d\n", getpid());
+                    write(pipe_Startup_to_Display[WRITE], Startup_str_array, strlen(Startup_str_array));
                     close(pipe_Startup_to_Display[WRITE]);
+                    close(pipe_Simulator_to_Display[READ]);  //Simulator will only write to pipe
+                    //close(pipe_Startup_to_Display[READ]);  // does not need access to the startup pipe
                     close(pipe_Controller_to_Display[READ]);  //does not need access to the controller pipe
                     close(pipe_Controller_to_Display[WRITE]);
-                    sprintf(Sim_str_array, "Process created with PID %d. Going to overlay\n", getpid());
-                    write(pipe_Simulator_to_Display[WRITE], Sim_str_array, strlen(Sim_str_array));
+                    //printf("Startup:  Simulator Process created with PID %d\n", getpid());
                     execl("..\\Assgn2_2024_Simulator\\bin\\Release\\Assgn2_2024_Simulator", "Assgn2_2024_Simulator", pipeSimToDisplayWriteFdStr, (char *) NULL);
                     perror("Simulator overlay failed: ");
                     exit(5);
@@ -157,14 +158,15 @@ int main()
                 if(count == 2)  // final child is the Controller
                 {
                     //char *strFromContrl = "Message through pipe from Controller to Display\n";
-                    char Contrl_str_array[100];
+                    //char Contrl_str_array[100];
                     close(pipe_Controller_to_Display[READ]);  //Controller will only write to pipe
-                    close(pipe_Startup_to_Display[READ]);  // does not need access to the startup pipe
+                    //close(pipe_Startup_to_Display[READ]);  // does not need access to the startup pipe
+                    sprintf(Startup_str_array, "Controller process created with PID %d\n", getpid());
+                    write(pipe_Startup_to_Display[WRITE], Startup_str_array, strlen(Startup_str_array));
                     close(pipe_Startup_to_Display[WRITE]);
-                    close(pipe_Simulator_to_Display[READ]);  //does not need access to the simulator pipe
-                    close(pipe_Simulator_to_Display[WRITE]);
-                    sprintf(Contrl_str_array, "Process created with PID %d. Going to overlay\n", getpid());
-                    write(pipe_Controller_to_Display[WRITE], Contrl_str_array, strlen(Contrl_str_array));
+                    //close(pipe_Simulator_to_Display[READ]);  //does not need access to the simulator pipe
+                    //close(pipe_Simulator_to_Display[WRITE]);
+                    //printf("Startup:  Controller Process created with PID %d\n", getpid());
                     execl("..\\Assgn2_2024_Controller\\bin\\Release\\Assgn2_2024_Controller", "Assgn2_2024_Controller", pipeContrlToDisplayWriteFdStr, (char *) NULL);
                     perror("Controller overlay failed: ");
                     exit(5);
@@ -208,7 +210,7 @@ int main()
                 }
 
         }     // end switch
-//        sleepMilliseconds((long) 1000 / POLL_LOOP_RATE);
+        sleepMilliseconds((long) 1000 / POLL_LOOP_RATE);
     }//end for loop
 
 
@@ -223,7 +225,7 @@ int main()
     for (int count = 0; count < NUMBER_OF_CHILDREN; count++)
     {
         pid_t return_pid = wait(&Status);
-        printf("Startup: Process with PID %d terminated with status code %d\n", return_pid, Status>>8);
+        printf("STARTUP\nProcess with PID %d terminated with status code %d\n", return_pid, Status>>8);
     }
     printf("Startup: Program has ended. Press any key to exit.\n");
     exit(0);

@@ -651,8 +651,8 @@ int main(int argc, char *argv[])
                             Left_NozzleStatus = not_holdingpart; //if the vacuum has just released a part, then the part has been placed and the nozzle is free again
                             part_placed = FALSE;  //reset the variable
                             lookdown_photo = FALSE;  //reset the photo variable
-                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Part %d placed on PCB successfully\n\n", getSimulationTime(), state_name[state], left_nozzle_part_num);
-                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
+                            //sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Part %d placed on PCB successfully\n", getSimulationTime(), state_name[state], left_nozzle_part_num);
+                            //write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
 
                             if (Centre_NozzleStatus == holdingpart)
                             {  //if the centre nozzle has a part, then move to the required position on the PCB
@@ -706,7 +706,7 @@ int main(int argc, char *argv[])
                             Centre_NozzleStatus = not_holdingpart; //if the vacuum has just released a part, then the part has been placed and the nozzle is free again
                             lookdown_photo = FALSE;  //reset the photo variabla
                             part_placed = FALSE;  //reset the variable
-                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Part %d placed on PCB successfully\n\n", getSimulationTime(), state_name[state], centre_nozzle_part_num);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Part %d placed on PCB successfully\n", getSimulationTime(), state_name[state], centre_nozzle_part_num);
                             write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
 
                             if (Right_NozzleStatus == holdingpart)
@@ -752,14 +752,14 @@ int main(int argc, char *argv[])
                             Right_NozzleStatus = not_holdingpart; //if the vacuum has just released a part, then the part has been placed and the nozzle is free again
                             lookdown_photo = FALSE;  //reset the photo variable
                             part_placed = FALSE;  //reset the variable
-                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Part %d placed on PCB successfully\n\n", getSimulationTime(), state_name[state], right_nozzle_part_num);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Part %d placed on PCB successfully\n", getSimulationTime(), state_name[state], right_nozzle_part_num);
                             write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
 
                             if(part_counter == number_of_components_to_place)
                             {  //if there are no more parts to place, then go to home
                                 setTargetPos(HOME_X,HOME_Y);
                                 state = MOVE_TO_HOME;
-                                sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Moving to home.\n", getSimulationTime(), state_name[state]);
+                                sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  All parts have been placed! Moving to home.\n", getSimulationTime(), state_name[state]);
                                 write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                             }
                             else
@@ -789,7 +789,7 @@ int main(int argc, char *argv[])
                     {   //once look-up photo is taken, move on to calculate errors
                         lookup_photo = TRUE;
                         state = CHECK_ERROR;
-                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Look-up photo acquired. Checking errors and calculating corrections\n", getSimulationTime(), state_name[state]);
+                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Checking errors and calculating corrections\n", getSimulationTime(), state_name[state]);
                         write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     }
                     break;
@@ -799,18 +799,22 @@ int main(int argc, char *argv[])
                     if (isSimulatorReadyForNextInstruction())
                     {
                         state = LOOK_DOWN_PHOTO;
+                        takePhoto(PHOTO_LOOKDOWN);
                         sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Now at PCB. Taking look-down photo\n", getSimulationTime(), state_name[state]);
                         write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     }
                     break;
 
                 case LOOK_DOWN_PHOTO:
+                    if (isSimulatorReadyForNextInstruction())
+                    {
                     //take the look-down photo, then move on to calculate errors
-                    takePhoto(PHOTO_LOOKDOWN);
+                    //takePhoto(PHOTO_LOOKDOWN);
                     lookdown_photo = TRUE;
                     state = CHECK_ERROR;
-                    sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Look-down photo acquired. Checking for errors in gantry alignment\n", getSimulationTime(), state_name[state]);
+                    sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Look-down photo acquired. Calculating corrections\n", getSimulationTime(), state_name[state]);
                     write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
+                    }
                     break;
 
                 case CHECK_ERROR:
@@ -824,7 +828,8 @@ int main(int argc, char *argv[])
                             sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Right part misalignment error: %3.2f  Correction required: %3.2f degrees\n", getSimulationTime(), state_name[state], errortheta, requested_theta_right);
                             write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                             state = FIX_NOZZLE_ERROR;
-                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Correction made to right nozzle for part alignment\n", getSimulationTime(), state_name[state]);
+                            rotateNozzle(RIGHT_NOZZLE, requested_theta_right);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Correcting right nozzle rotation...\n", getSimulationTime(), state_name[state]);
                             write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
                         else if (nozzle_errors_to_check == 2)
@@ -834,7 +839,8 @@ int main(int argc, char *argv[])
                             sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Centre part misalignment error: %3.2f  Correction required: %3.2f degrees\n", getSimulationTime(),state_name[state], errortheta, requested_theta_centre);
                             write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                             state = FIX_NOZZLE_ERROR;
-                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Correction made to centre nozzle for part alignment\n", getSimulationTime(), state_name[state]);
+                            rotateNozzle(CENTRE_NOZZLE, requested_theta_centre);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Correcting centre nozzle rotation...\n", getSimulationTime(), state_name[state]);
                             write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
 
@@ -845,7 +851,8 @@ int main(int argc, char *argv[])
                             sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Left part misalignment error: %3.2f  Correction required: %3.2f degrees\n", getSimulationTime(),state_name[state], errortheta, requested_theta_left);
                             write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                             state = FIX_NOZZLE_ERROR;
-                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Correction made to left nozzle for part alignment\n", getSimulationTime(), state_name[state]);
+                            rotateNozzle(LEFT_NOZZLE, requested_theta_left);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Correcting left nozzle rotation\n", getSimulationTime(), state_name[state]);
                             write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
 
@@ -855,7 +862,7 @@ int main(int argc, char *argv[])
                             req_target = left_nozzle_part_num;  //this is needed to obtain and calculate the relevant misalignment errors
                             setTargetPos(pi[left_nozzle_part_num].x_target, pi[left_nozzle_part_num].y_target);
                             state = MOVE_TO_PCB;
-                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  No furthers errors. Moving to PCB\n", getSimulationTime(), state_name[state]);
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  No further errors. Moving to PCB\n", getSimulationTime(), state_name[state]);
                             write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
                     }
@@ -864,11 +871,11 @@ int main(int argc, char *argv[])
                     {  //calculate the difference  between the required target and the error of the gantry over the PCB
                         preplace_diff_x = pi[req_target].x_target - (pi[req_target].x_target+getPreplaceErrorX()); //calculate the difference between the required x position and the actual x position of the gantry
                         preplace_diff_y = pi[req_target].y_target - (pi[req_target].y_target+getPreplaceErrorY()); //calculate the difference between the required y position and the actual y position of the gantry
-                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Preplace misalignment error: x=%3.2f y=%3.2f\n", getSimulationTime(), state_name[state], getPreplaceErrorX(), getPreplaceErrorY());
-                        write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
+                        //sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Preplace misalignment error: x=%3.2f y=%3.2f\n", getSimulationTime(), state_name[state], getPreplaceErrorX(), getPreplaceErrorY());
+                        //write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         amendPos(preplace_diff_x, preplace_diff_y);  //fix the gantry preplace position over the PCB
                         state = FIX_PREPLACE_ERROR;
-                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Correction made to gantry position\n", getSimulationTime(), state_name[state]);
+                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Correcting gantry position...\n", getSimulationTime(), state_name[state]);
                         write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     }
 
@@ -879,7 +886,9 @@ int main(int argc, char *argv[])
                     {  //apply correction to nozzle rotation for part alignment
                         if (nozzle_errors_to_check == 3)
                         {   //using nozzle_errors_to_check as a counter to ensure the correct nozzle is addressed
-                            rotateNozzle(RIGHT_NOZZLE, requested_theta_right);  //rotate the nozzle by the required calculated angle theta
+                            //rotateNozzle(RIGHT_NOZZLE, requested_theta_right);  //rotate the nozzle by the required calculated angle theta
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Correction made to right nozzle for part alignment\n", getSimulationTime(), state_name[state]);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                             nozzle_errors_to_check--;  //decrement to track the errors needed for correction
                             state = CHECK_ERROR;
                             sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Checking for errors...\n", getSimulationTime(),state_name[state]);
@@ -887,7 +896,9 @@ int main(int argc, char *argv[])
                         }
                         else if (nozzle_errors_to_check == 2)
                         {   //centre nozzle is second to be corrected
-                            rotateNozzle(CENTRE_NOZZLE, requested_theta_centre);  //rotate the nozzle by the required calculated angle theta
+                            //rotateNozzle(CENTRE_NOZZLE, requested_theta_centre);  //rotate the nozzle by the required calculated angle theta
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Correction made to centre nozzle for part alignment\n", getSimulationTime(), state_name[state]);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                             nozzle_errors_to_check--;
                             state = CHECK_ERROR;
                             sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Checking for errors...\n", getSimulationTime(),state_name[state]);
@@ -895,7 +906,9 @@ int main(int argc, char *argv[])
                         }
                         else if (nozzle_errors_to_check == 1)
                         {   //since the left nozzle was first to pick up a part, it is last to be corrected. Applies if it is the only nozzle in use for a singular part
-                            rotateNozzle(LEFT_NOZZLE, requested_theta_left);  //rotate the nozzle by the required calculated angle theta
+                            //rotateNozzle(LEFT_NOZZLE, requested_theta_left);  //rotate the nozzle by the required calculated angle theta
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Correction made to left nozzle for part alignment\n", getSimulationTime(), state_name[state]);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                             nozzle_errors_to_check--;
                             state = CHECK_ERROR;
                             sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Checking for errors...\n", getSimulationTime(),state_name[state]);
