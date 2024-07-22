@@ -26,14 +26,14 @@
 #define WRITE 1
 #define POLL_LOOP_RATE 50
 
-void sleepMilliseconds(long ms)
-{
-    struct timespec ts;
-
-    ts.tv_sec = ms / 1000;
-    ts.tv_nsec = (ms % 1000) * 1000000;
-    nanosleep(&ts, NULL);
-}
+//void sleepMilliseconds(long ms)
+//{
+//    struct timespec ts;
+//
+//    ts.tv_sec = ms / 1000;
+//    ts.tv_nsec = (ms % 1000) * 1000000;
+//    nanosleep(&ts, NULL);
+//}
 
 int pipe_Startup_to_Display[2];  //[0] for read, [1] for write
 int pipe_Simulator_to_Display[2];
@@ -41,8 +41,14 @@ int pipe_Controller_to_Display[2];
 
 int main()
 {
-    //sem_t *sem_1 = sem_open("/sem_1", O_CREAT, 0666, 1);
-    //sem_t *sem_2 = sem_open("/sem_2", O_CREAT, 0666, 0);
+    //named semaphore creation
+    sem_t *sem_Startup = sem_open("/sem_Startup", O_CREAT, 0666, 0);
+    sem_t *sem_Sim = sem_open("/sem_Sim", O_CREAT, 0666, 0);
+    if (sem_Startup == SEM_FAILED || sem_Sim == SEM_FAILED)
+    {
+        perror("sem_open failed");
+        exit(6);
+    }
 
 //    char *strFromStartup;
     char Startup_str_array[100];
@@ -52,7 +58,7 @@ int main()
     char pipeSimToDisplayWriteFdStr[10];  // used to allow simulator to write to display pipe
     char pipeContrlToDisplayWriteFdStr[10]; // used to allow controller to write to display pipe
 
-//    int DisplayStatus; //for parent to monitor the status of the display child
+    //int DisplayStatus; //for parent to monitor the status of the display child
     int Status; //for parent to monitor the status of the simulator child
 
     //set up pipes before fork
@@ -61,11 +67,11 @@ int main()
         perror("Pipe creation failed");
         exit(5);
     }
-    //setting up pipes to be non-blocking so display can read from multiples pipes
-//    if (fcntl(pipe_Startup_to_Display[READ], F_SETFL, O_NONBLOCK) < 0 || fcntl(pipe_Simulator_to_Display[READ], F_SETFL, O_NONBLOCK) <0 || fcntl(pipe_Controller_to_Display[READ], F_SETFL, O_NONBLOCK)<0) {
-//        perror("Pipe non-blocking fail");
-//        exit(5);
-//    }
+    //setting up pipe to be non-blocking so display can continue read from multiples pipes
+    if (fcntl(pipe_Startup_to_Display[READ], F_SETFL, O_NONBLOCK) < 0) {
+        perror("Pipe non-blocking fail");
+        exit(5);
+    }
 
     // string creation for read end of pipe, to allow process to read or write
     sprintf(pipeStartupToDisplayReadFdStr, "%d", pipe_Startup_to_Display[READ]);
@@ -210,9 +216,10 @@ int main()
                 }
 
         }     // end switch
-        sleepMilliseconds((long) 1000 / POLL_LOOP_RATE);
-    }//end for loop
+        //sleepMilliseconds((long) 1000 / POLL_LOOP_RATE);
 
+    }//end for loop
+    sem_post(sem_Startup);
 
 //    strFromStartup = "Process spawning completed\n";
 //    write(pipe_Startup_to_Display[WRITE], strFromStartup, strlen(strFromStartup));
@@ -220,13 +227,28 @@ int main()
 //    strFromStartup = "Waiting for children to terminate\n";
 //    write(pipe_Startup_to_Display[WRITE], strFromStartup, strlen(strFromStartup));
 
-    close(pipe_Startup_to_Display[WRITE]);  // pipe needs to be closed to allow display to print while waiting for children to terminate
+    pid_t Contrl_pid = wait(&Status);
+    sprintf(Startup_str_array, "Controller with PID %d terminated with status code %d\n", Contrl_pid, Status>>8);
+    write(pipe_Startup_to_Display[WRITE], Startup_str_array, strlen(Startup_str_array));
+    pid_t Sim_pid = wait(&Status);
+    sprintf(Startup_str_array, "Simulator with PID %d terminated with status code %d\n", Sim_pid, Status>>8);
+    write(pipe_Startup_to_Display[WRITE], Startup_str_array, strlen(Startup_str_array));
 
-    for (int count = 0; count < NUMBER_OF_CHILDREN; count++)
-    {
-        pid_t return_pid = wait(&Status);
-        printf("STARTUP\nProcess with PID %d terminated with status code %d\n", return_pid, Status>>8);
-    }
-    printf("Startup: Program has ended. Press any key to exit.\n");
+//    for (int count = 0; count < NUMBER_OF_CHILDREN-1; count++)
+//    {
+//        pid_t return_pid = wait(&Status);
+//        sprintf(Startup_str_array, "STARTUP\nProcess with PID %d terminated with status code %d\n", return_pid, Status>>8);
+//        write(pipe_Startup_to_Display[WRITE], Startup_str_array, strlen(Startup_str_array));
+//        //printf("STARTUP\nProcess with PID %d terminated with status code %d\n", return_pid, Status>>8);
+//    }
+
+    close(pipe_Startup_to_Display[WRITE]);  // pipe needs to be closed to allow display to terminate
+    pid_t Display_pid = wait(&Status);
+    printf("STARTUP\nDisplay with PID %d terminated with status code %d\n", Display_pid, Status>>8);
+    printf("STARTUP\nProgram has ended. Press any key to exit.\n");
+    sem_close(sem_Startup);
+    sem_unlink("/sem_Startup");
+    sem_close(sem_Sim);
+    sem_unlink("/sem_Sim");
     exit(0);
 }//end main

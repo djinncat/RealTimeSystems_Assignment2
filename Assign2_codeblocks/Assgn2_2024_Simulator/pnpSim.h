@@ -80,6 +80,8 @@
 #define RELEASE_VACUUM 6
 #define TAKE_PHOTO 7
 #define AMEND_HEAD_POSITION 8
+#define LOAD_PCB 9
+#define UNLOAD_PCB 10
 
 #define HEAD_FULL_SPEED 1000.0    // 1000 units per second
 #define NOZZLE_ROTATE_SPEED 360.0 // 360 degrees per second
@@ -88,6 +90,7 @@
 #define VACUUM_APPLY_TIME 0.05    // 0.05 seconds
 #define VACUUM_RELEASE_TIME 0.05  // 0.05 seconds
 #define PHOTO_TAKE_TIME 0.05      // 0.05 seconds
+#define PCB_LOAD_UNLOAD_TIME 1.5   // 1.5 seconds
 
 typedef struct
 {

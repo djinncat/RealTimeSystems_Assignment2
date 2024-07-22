@@ -17,6 +17,7 @@
 #include <termios.h>
 #include <math.h>
 #include <string.h>
+#include <semaphore.h>
 
 #define MANUAL_CONTROL 1
 #define AUTONOMOUS_CONTROL 2
@@ -91,6 +92,8 @@
 #define RELEASE_VACUUM 6
 #define TAKE_PHOTO 7
 #define AMEND_HEAD_POSITION 8
+#define LOAD_PCB 9
+#define UNLOAD_PCB 10
 
 typedef struct
 {
@@ -140,6 +143,10 @@ void applyVacuum(int);
 void releaseVacuum(int);
 
 void takePhoto(int);
+
+void loadPCB();
+
+void unloadPCB();
 
 void pnpOpen();
 

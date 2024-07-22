@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <semaphore.h>
 #include "pnpSim.h"
 
 int main(int argc, char *argv[])
@@ -21,6 +22,8 @@ int main(int argc, char *argv[])
     char Sim_str_array[145];
     char *strFromSim;
     int writeSimToDisplayFd = atoi(argv[1]);  // the file descriptor to write from Simulator to Display
+    sem_t *sem_Sim = sem_open("/sem_Sim", 0);
+    sem_t *sem_Startup = sem_open("/sem_Startup", 0);
 //    strFromSim = "Simulator: test message\n";
 //    write(writeSimToDisplayFd, strFromSim, strlen(strFromSim));
     //double sim_time = 0.0;
@@ -65,7 +68,7 @@ int main(int argc, char *argv[])
 
     /* reset the pick and place machine*/
     resetPnP(pnp, sim_time);
-
+    //sem_wait(sem_Startup);
 //printf("Time: %7.2f  Pick and place machine simulation started successfully!\n", sim_time);
     sprintf(Sim_str_array, "Time: %7.2f  Pick and place machine simulation started successfully!\n", sim_time);
     write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
@@ -78,6 +81,7 @@ int main(int argc, char *argv[])
      * sleep for a short duration (dictated by POLL_LOOP_RATE)
      * on each loop
      */
+
     while (pnp -> quit == FALSE)
     {
 
@@ -93,6 +97,26 @@ int main(int argc, char *argv[])
         {
 
             int new_instruction = pnp -> instruction_to_execute;
+
+            if (new_instruction == LOAD_PCB)
+            {
+                pnp -> ready_for_next_instruction = FALSE;
+                pnp -> instruction_to_execute = NO_INSTRUCTION;
+                instruction_being_executed = LOAD_PCB;
+                instruction_finish_time = sim_time + PCB_LOAD_UNLOAD_TIME;
+                sprintf(Sim_str_array, "Time: %7.2f  PCB about to be loaded into pick and place machine\n", sim_time);
+                write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+            }
+
+            if (new_instruction == UNLOAD_PCB)
+            {
+                pnp -> ready_for_next_instruction = FALSE;
+                pnp -> instruction_to_execute = NO_INSTRUCTION;
+                instruction_being_executed = UNLOAD_PCB;
+                instruction_finish_time = sim_time + PCB_LOAD_UNLOAD_TIME;
+                sprintf(Sim_str_array, "Time: %7.2f  PCB about to be unloaded\n", sim_time);
+                write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+            }
 
             if (new_instruction == MOVE_HEAD)
             {
@@ -284,6 +308,17 @@ int main(int argc, char *argv[])
             int feeder;
             switch(instruction_being_executed)
             {
+                case LOAD_PCB:
+                    sprintf(Sim_str_array, "Time: %7.2f  PCB has been loaded\n", sim_time);
+                    write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                    break;
+
+                case UNLOAD_PCB:
+                    sem_post(sem_Sim);
+                    sprintf(Sim_str_array, "Time: %7.2f  PCB has been unloaded\n", sim_time);
+                    write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                    break;
+
                 case MOVE_HEAD:
                     x = x_target;
                     y = y_target;
@@ -448,6 +483,7 @@ int main(int argc, char *argv[])
             /* update shared memory for instruction related variables */
             instruction_being_executed = NO_INSTRUCTION;
             pnp -> ready_for_next_instruction = TRUE;
+            sem_post(sem_Sim);
         }
 
         sleepMilliseconds((long) 1000 / POLL_LOOP_RATE);
@@ -464,5 +500,7 @@ int main(int argc, char *argv[])
     resetPnP(pnp, 0.0);
     munmap(pnp, sizeof(PnP));
     close(fd);
+    sem_close(sem_Startup);
+    sem_close(sem_Sim);
     exit(20);
 }

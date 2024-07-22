@@ -12,6 +12,7 @@
 
 #include "pnpControl.h"
 
+
 // state names and numbers
 #define HOME                0
 #define MOVE_TO_FEEDER      1
@@ -34,12 +35,13 @@
 #define LOWER_RIGHT_NOZZLE  18
 #define VAC_RIGHT_NOZZLE    19
 #define RAISE_RIGHT_NOZZLE  20
+#define PCB                 21
 
 #define holdingpart         1
 #define not_holdingpart     0
 
 /* state_names of up to 19 characters (the 20th character is a null terminator), only required for display purposes */
-const char state_name[21][20] = {"HOME               ",
+const char state_name[22][20] = {"HOME               ",
                                 "MOVE TO FEEDER     ",
                                 "WAIT 1             ",
                                 "LOWER CNTR NOZZLE  ",
@@ -59,7 +61,8 @@ const char state_name[21][20] = {"HOME               ",
                                 "RAISE LEFT NOZZLE  ",
                                 "LOWER RIGHT NOZZLE ",
                                 "VAC RIGHT NOZZLE   ",
-                                "RAISE RIGHT NOZZLE "};
+                                "RAISE RIGHT NOZZLE ",
+                                "PCB                "};
 
 const double TAPE_FEEDER_X[NUMBER_OF_FEEDERS] = {FDR_0_X, FDR_1_X, FDR_2_X, FDR_3_X, FDR_4_X, FDR_5_X, FDR_6_X, FDR_7_X, FDR_8_X, FDR_9_X};
 const double TAPE_FEEDER_Y[NUMBER_OF_FEEDERS] = {FDR_0_Y, FDR_1_Y, FDR_2_Y, FDR_3_Y, FDR_4_Y, FDR_5_Y, FDR_6_Y, FDR_7_Y, FDR_8_Y, FDR_9_Y};
@@ -72,7 +75,8 @@ int main(int argc, char *argv[])
     sleep(1);
     char Contrl_str_array[150];
     int writeContrlToDisplayFd = atoi(argv[1]);  // the file descriptor to write from controller to Display
-
+    sem_t *sem_Startup = sem_open("/sem_Startup", 0);  // open the named semaphores
+    sem_t *sem_Sim = sem_open("/sem_Sim", 0);
 //    sprintf(Contrl_str_array, "Controller: Terminating...\n");
 //    write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
 //    close(writeContrlToDisplayFd);
@@ -80,6 +84,7 @@ int main(int argc, char *argv[])
 
     pnpOpen();
 
+    //sem_wait(sem_Startup);
     sprintf(Contrl_str_array, "Time: %7.2f  Controller started successfully!\n", getSimulationTime());
     write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
 
@@ -393,12 +398,12 @@ int main(int argc, char *argv[])
         int state = HOME, part_counter = 0, nozzle_errors_to_check = 0, left_nozzle_part_num = 0,
             centre_nozzle_part_num = 0, right_nozzle_part_num = 0, component_num, req_target = 0;
         char part_placed = FALSE, Centre_NozzleStatus = not_holdingpart, Left_NozzleStatus = not_holdingpart,
-            Right_NozzleStatus = not_holdingpart, lookup_photo = FALSE, lookdown_photo = FALSE;
+            Right_NozzleStatus = not_holdingpart, lookup_photo = FALSE, lookdown_photo = FALSE, loaded = 1, PCB_status = 0, unloaded = 0;
         double requested_theta_left = 0, requested_theta_centre = 0, requested_theta_right = 0;  //the required angle theta of the nozzle position
         double preplace_diff_x = 0, preplace_diff_y = 0;  //difference in required gantry position and actual gantry position for preplacement
 
 
-        sprintf(Contrl_str_array, "Time: %7.2f  Initial state: %.15s  Operating in automatic mode, there are %d parts to place\n\n", getSimulationTime(), state_name[HOME], number_of_components_to_place);
+        sprintf(Contrl_str_array, "Time: %7.2f  Initial state: %.15s  Operating in automatic mode. There are %d parts to place\n\n", getSimulationTime(), state_name[HOME], number_of_components_to_place);
         write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
 
 
@@ -459,7 +464,6 @@ int main(int argc, char *argv[])
         }
 
 
-
         /* loop until user quits */
         while(!isPnPSimulationQuitFlagOn())
         {
@@ -474,21 +478,55 @@ int main(int argc, char *argv[])
                         component_num = component_list[part_counter];  //hold the value of the part to be placed. The counter starts at zero
                         if(part_counter == number_of_components_to_place)
                         {  // program is complete, terminate program
+                            sem_wait(sem_Sim); // waiting for the simulator to finish unloading the PCB
                             sprintf(Contrl_str_array, "Time: %7.2f  Terminating...\n", getSimulationTime());
                             write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                             close(writeContrlToDisplayFd);
                             pnpClose();
+                            sem_close(sem_Sim);
+                            sem_close(sem_Startup);
                             exit(30);
                         }
-                        else
-                        { //go to the first feeder in the list, +20 for the left nozzle positioning
+                        else if(PCB_status == loaded)
+                        {//go to the first feeder in the list, +20 for the left nozzle positioning
                             setTargetPos(TAPE_FEEDER_X[pi[component_num].feeder]+20, TAPE_FEEDER_Y[pi[component_num].feeder]);
                             state = MOVE_TO_FEEDER;
                             sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Moving to tape feeder %d\n", getSimulationTime(), state_name[state], pi[component_num].feeder);
                             write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                         }
+
+                        else if (PCB_status == unloaded)
+                        {
+                            loadPCB();
+                            state = PCB;
+                            PCB_status = loaded;
+                            sprintf(Contrl_str_array, "Time: %7.2f  New State: %.15s  Loading PCB onto pick and place machine\n\n", getSimulationTime(), state_name[state]);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
+                        }
                     }
                     break;
+
+                case PCB:
+
+                    if(isSimulatorReadyForNextInstruction())
+                    {
+                        if(PCB_status == loaded)
+                        {//go to the first feeder in the list, +20 for the left nozzle positioning
+                            setTargetPos(TAPE_FEEDER_X[pi[component_num].feeder]+20, TAPE_FEEDER_Y[pi[component_num].feeder]);
+                            state = MOVE_TO_FEEDER;
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Moving to tape feeder %d\n", getSimulationTime(), state_name[state], pi[component_num].feeder);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
+                        }
+                        else if(PCB_status == unloaded)
+                        {
+                            state = HOME;
+                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  PCB unloaded successfully\n", getSimulationTime(), state_name[state]);
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
+                        }
+
+                    }
+                    break;
+
 
                 case MOVE_TO_FEEDER:
                     //waiting for the simulator to complete movement of the gantry
@@ -706,8 +744,8 @@ int main(int argc, char *argv[])
                             Centre_NozzleStatus = not_holdingpart; //if the vacuum has just released a part, then the part has been placed and the nozzle is free again
                             lookdown_photo = FALSE;  //reset the photo variabla
                             part_placed = FALSE;  //reset the variable
-                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Part %d placed on PCB successfully\n", getSimulationTime(), state_name[state], centre_nozzle_part_num);
-                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
+                            //sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Part %d placed on PCB successfully\n", getSimulationTime(), state_name[state], centre_nozzle_part_num);
+                            //write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
 
                             if (Right_NozzleStatus == holdingpart)
                             {  //if the right nozzle has a part then, move to the required position on the PCB
@@ -752,20 +790,24 @@ int main(int argc, char *argv[])
                             Right_NozzleStatus = not_holdingpart; //if the vacuum has just released a part, then the part has been placed and the nozzle is free again
                             lookdown_photo = FALSE;  //reset the photo variable
                             part_placed = FALSE;  //reset the variable
-                            sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Part %d placed on PCB successfully\n", getSimulationTime(), state_name[state], right_nozzle_part_num);
-                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
+                            //sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Part %d placed on PCB successfully\n", getSimulationTime(), state_name[state], right_nozzle_part_num);
+                            //write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
 
                             if(part_counter == number_of_components_to_place)
                             {  //if there are no more parts to place, then go to home
-                                setTargetPos(HOME_X,HOME_Y);
-                                state = MOVE_TO_HOME;
-                                sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  All parts have been placed! Moving to home.\n", getSimulationTime(), state_name[state]);
-                                write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
+                                if (isSimulatorReadyForNextInstruction())
+                                {
+                                    setTargetPos(HOME_X,HOME_Y);
+                                    state = MOVE_TO_HOME;
+                                    sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  All parts have been placed! Moving to home.\n", getSimulationTime(), state_name[state]);
+                                    write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
+                                }
+
                             }
                             else
                             {   // once the part is placed, if there are more parts then go to home to obtain details for the next feeder
                                 state = HOME;
-                                sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Moving to next feeder\n\n", getSimulationTime(), state_name[state]);
+                                sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Moving to next feeder\n", getSimulationTime(), state_name[state]);
                                 write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                             }
 
@@ -948,8 +990,10 @@ int main(int argc, char *argv[])
                 case MOVE_TO_HOME:
                     if (isSimulatorReadyForNextInstruction())
                     {   //moves the gantry to home position once placement of all components is complete
-                        state = HOME;
-                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Gantry in Home position. Placement complete.\n", getSimulationTime(), state_name[state]);
+                        unloadPCB();
+                        state = PCB;
+                        PCB_status = unloaded;
+                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Gantry in Home position. Unloading PCB\n", getSimulationTime(), state_name[state]);
                         write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     }
                     break;
@@ -963,6 +1007,8 @@ int main(int argc, char *argv[])
     close(writeContrlToDisplayFd);
     pnpClose();
     //return 0;
+    sem_close(sem_Startup);
+    sem_close(sem_Sim);
     exit(30);
 }
 

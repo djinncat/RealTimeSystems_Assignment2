@@ -334,6 +334,55 @@ void takePhoto(int camera)
 }
 
 /*
+ Function: loadPCB
+ -------------------
+ Written by Kate Bowater
+ Date: 21/07/2024
+ Version 1.0
+ Purpose:
+ Instructs the simulator to load a PCB onto the pick and place machine
+ Argument(s):
+ None
+ Return Value:
+ None, the instruction to load the PCB will always be passed to the simulator, check the simulator
+ display output to see whether or not the simulator acted upon the instruction
+ Usage:
+ loadPCB();
+*/
+void loadPCB()
+{
+    pnp -> instruction_argument_1 = 0.0;    // instruction_argument_1 is not used with the PCB instruction
+    pnp -> instruction_argument_2 = 0.0;    // instruction_argument_2 is not used with the PCB instruction
+    pnp -> instruction_argument_3 = 0;      // not needed
+    pnp -> instruction_to_execute = LOAD_PCB;
+}
+
+/*
+ Function: unloadPCB
+ -------------------
+ Written by Kate Bowater
+ Date: 21/07/2024
+ Version 1.0
+ Purpose:
+ Instructs the simulator to unload the PCB from the pick and place machine
+ Argument(s):
+ None
+ Return Value:
+ None, the instruction to unload the PCB will always be passed to the simulator, check the simulator
+ display output to see whether or not the simulator acted upon the instruction
+ Usage:
+ unloadPCB();
+*/
+void unloadPCB()
+{
+    pnp -> instruction_argument_1 = 0.0;    // instruction_argument_1 is not used with the PCB instruction
+    pnp -> instruction_argument_2 = 0.0;    // instruction_argument_2 is not used with the PCB instruction
+    pnp -> instruction_argument_3 = 0;      // not needed
+    pnp -> instruction_to_execute = UNLOAD_PCB;
+}
+
+
+/*
  Function: getKeyPress
  ---------------------
  Written by Jason Brown

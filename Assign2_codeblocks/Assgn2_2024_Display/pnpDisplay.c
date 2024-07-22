@@ -2,38 +2,17 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include <semaphore.h>
 #include "pnpDisplay.h"
 
 #define READ_BLOCK_SIZE 50
 
-PnP *pnp;
-//this function gets the simulation time from the shared pnp file that simulator and controller also access
-double simulation_time()
-{
-    return pnp->sim_time;
-}
 
 
 int main(int argc, char *argv[])
 {
-    //opening a mapped memory file to share with simulator and controller in order to get simulation time
-    int fd = open(MEMORY_MAPPED_FILE, (O_CREAT | O_RDWR), 0666);
-    if (fd < 0)
-    {
-        perror("creation/opening of memory mapped file failed");
-        exit(1);
-    }
-    ftruncate(fd, sizeof(PnP));
 
-    /* map the file to memory */
-    pnp = (PnP *)mmap(0, sizeof(PnP), (PROT_READ | PROT_WRITE), MAP_SHARED, fd, (off_t)0);
-    if (pnp == MAP_FAILED)
-    {
-        perror("memory mapping of file failed");
-        close(fd);
-        exit(2);
-    }
-
+    sem_t *sem_Startup = sem_open("/sem_Startup", 0);
     char readBufferStartup[READ_BLOCK_SIZE+1], readBufferSim[READ_BLOCK_SIZE+1], readBufferContrl[READ_BLOCK_SIZE+1];
     ssize_t bytesReadStartup, bytesReadSim, bytesReadContrl;
 
@@ -42,14 +21,15 @@ int main(int argc, char *argv[])
     int readSimFd = atoi(argv[2]);
     int readContrlFd = atoi(argv[3]);
 
-    printf("DISPLAY\nTime: %7.2f  Now reading from pipes\n", simulation_time());
+    printf("DISPLAY\nNow reading from pipes\n");
     //display process will stop here until there is a message to be read
+    sem_wait(sem_Startup);
     bytesReadStartup = read(readStartupFd, readBufferStartup, READ_BLOCK_SIZE);
     bytesReadSim = read(readSimFd, readBufferSim, READ_BLOCK_SIZE);
     bytesReadContrl = read(readContrlFd, readBufferContrl, READ_BLOCK_SIZE);
 
     //stays in loop as long as there are bytes in the pipes for reading
-    while (bytesReadStartup > 0 || bytesReadSim > 0 || bytesReadContrl > 0)
+    while (bytesReadStartup != 0 || bytesReadSim > 0 || bytesReadContrl > 0)
     {
         if (bytesReadStartup > 0) //for the pipe connected to Startup process
         {
@@ -65,6 +45,11 @@ int main(int argc, char *argv[])
             printf("%s", readBufferStartup);
             bytesReadStartup = read(readStartupFd, readBufferStartup, READ_BLOCK_SIZE);
         }
+        if (bytesReadStartup < 0)
+        {
+            bytesReadStartup = read(readStartupFd, readBufferStartup, READ_BLOCK_SIZE);
+        }
+
 
         //for the pipes connected to simulator and controller
         if (bytesReadSim > 0 || bytesReadContrl > 0)
@@ -140,17 +125,38 @@ int main(int argc, char *argv[])
 
     } //end while loop
 
+// Display enters this loop to ensure the last few messages of Startup are printed
+// because the pipe from Startup is non-blocking. Once Startup has finished
+// and the pipe is closed, then Display can terminate
+    while(1)
+    {
+        bytesReadStartup = read(readStartupFd, readBufferStartup, READ_BLOCK_SIZE);
+        switch(bytesReadStartup)
+        {
+            case -1:
+                bytesReadStartup = read(readStartupFd, readBufferStartup, READ_BLOCK_SIZE);
+                break;
 
-    // the writing ends of the pipes have been closed and there are no more bytes to read
-    printf("DISPLAY\nTime: %7.2f  Finished reading from pipe\n", simulation_time());
-    printf("DISPLAY\nTerminating...\n");
-    munmap(pnp, sizeof(PnP)); //unmap the shared file PnP
-    close(fd);
-    close(readStartupFd);  //close all the pipes and terminate
-    close(readSimFd);
-    close(readContrlFd);
-    exit(10);
+            case 0:
+                printf("DISPLAY\nFinished reading from pipes\nTerminating...\n");
+               // munmap(pnp, sizeof(PnP)); //unmap the shared file PnP
+               // close(fd);
+                close(readStartupFd);  //close all the pipes and terminate
+                close(readSimFd);
+                close(readContrlFd);
+                sem_close(sem_Startup);
+                exit(10);
 
+            default:
+                printf("STARTUP\n");
+                while(bytesReadStartup > 0)
+                {  // continue printing until the new line is specified
+                    readBufferStartup[bytesReadStartup] = '\0';
+                    printf("%s", readBufferStartup);
+                    bytesReadStartup = read(readStartupFd, readBufferStartup, READ_BLOCK_SIZE);
+                }
+        } // end switch
+    } //end while loop
 } // end main
 
 
