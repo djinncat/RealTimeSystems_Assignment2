@@ -24,6 +24,7 @@ int main(int argc, char *argv[])
     int writeSimToDisplayFd = atoi(argv[1]);  // the file descriptor to write from Simulator to Display
     sem_t *sem_Sim = sem_open("/sem_Sim", 0);
     sem_t *sem_Startup = sem_open("/sem_Startup", 0);
+    sem_t *sem_Contrl = sem_open("/sem_Contrl", 0);
 
 
     PnP *pnp;
@@ -64,11 +65,10 @@ int main(int argc, char *argv[])
     /* reset the pick and place machine*/
     resetPnP(pnp, sim_time);
 
-    //wait for Startup to finish spawning processes
+    //wait for Startup to finish spawning other processes
     sem_wait(sem_Startup);
     sprintf(Sim_str_array, "Time: %7.2f  Pick and place machine simulation started successfully!\n", sim_time);
     write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
-    sem_post(sem_Sim);
 
     const char nozzle_name[3][10] = {"Left", "Centre", "Right"};
 
@@ -312,7 +312,7 @@ int main(int argc, char *argv[])
                 case UNLOAD_PCB:
                     sprintf(Sim_str_array, "Time: %7.2f  PCB has been unloaded\n", sim_time);
                     write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
-                    sem_post(sem_Sim); // the controller will wait for this before terminating
+                    sem_post(sem_Sim); // the controller waits for the simulator to finish this task before terminating
                     break;
 
                 case MOVE_HEAD:
@@ -490,7 +490,7 @@ int main(int argc, char *argv[])
         pnp -> sim_time = sim_time;
     }
     // if program is terminated early, need to wait for controller to terminate first
-    sem_wait(sem_Sim);
+    sem_wait(sem_Contrl);
     sprintf(Sim_str_array, "Time: %7.2f  Terminating...\n", sim_time);
     write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
     close(writeSimToDisplayFd);
@@ -501,5 +501,6 @@ int main(int argc, char *argv[])
     close(fd);
     sem_close(sem_Startup);
     sem_close(sem_Sim);
+    sem_close(sem_Contrl);
     exit(20);
 }

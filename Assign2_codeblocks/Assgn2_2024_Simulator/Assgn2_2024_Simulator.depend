@@ -1,8 +1,8 @@
 # depslib dependency file v1.0
-1721225359 source:c:\users\thisi\desktop\ele4307\assignment2\assign2_codeblocks\assgn2_2024_simulator\pnpsimfunctions.c
+1721769863 source:c:\users\thisi\desktop\ele4307\assignment2\assign2_codeblocks\assgn2_2024_simulator\pnpsimfunctions.c
 	"pnpSim.h"
 
-1721592087 c:\users\thisi\desktop\ele4307\assignment2\assign2_codeblocks\assgn2_2024_simulator\pnpsim.h
+1721770185 c:\users\thisi\desktop\ele4307\assignment2\assign2_codeblocks\assgn2_2024_simulator\pnpsim.h
 	<stdio.h>
 	<stdlib.h>
 	<fcntl.h>
@@ -11,7 +11,7 @@
 	<time.h>
 	<math.h>
 
-1721688521 source:c:\users\thisi\desktop\ele4307\assignment2\assign2_codeblocks\assgn2_2024_simulator\pnpsim.c
+1721751924 source:c:\users\thisi\desktop\ele4307\assignment2\assign2_codeblocks\assgn2_2024_simulator\pnpsim.c
 	<stdio.h>
 	<stdlib.h>
 	<unistd.h>
