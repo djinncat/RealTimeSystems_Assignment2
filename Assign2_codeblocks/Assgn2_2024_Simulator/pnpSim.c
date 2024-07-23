@@ -24,11 +24,6 @@ int main(int argc, char *argv[])
     int writeSimToDisplayFd = atoi(argv[1]);  // the file descriptor to write from Simulator to Display
     sem_t *sem_Sim = sem_open("/sem_Sim", 0);
     sem_t *sem_Startup = sem_open("/sem_Startup", 0);
-//    strFromSim = "Simulator: test message\n";
-//    write(writeSimToDisplayFd, strFromSim, strlen(strFromSim));
-    //double sim_time = 0.0;
-    //sprintf(Sim_str_array, "Time: %7.2f  Pick and place machine simulation started successfully!\n", 0.0);
-    //write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
 
 
     PnP *pnp;
@@ -68,11 +63,12 @@ int main(int argc, char *argv[])
 
     /* reset the pick and place machine*/
     resetPnP(pnp, sim_time);
-    //sem_wait(sem_Startup);
-//printf("Time: %7.2f  Pick and place machine simulation started successfully!\n", sim_time);
+
+    //wait for Startup to finish spawning processes
+    sem_wait(sem_Startup);
     sprintf(Sim_str_array, "Time: %7.2f  Pick and place machine simulation started successfully!\n", sim_time);
     write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
-
+    sem_post(sem_Sim);
 
     const char nozzle_name[3][10] = {"Left", "Centre", "Right"};
 
@@ -314,9 +310,9 @@ int main(int argc, char *argv[])
                     break;
 
                 case UNLOAD_PCB:
-                    sem_post(sem_Sim);
                     sprintf(Sim_str_array, "Time: %7.2f  PCB has been unloaded\n", sim_time);
                     write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
+                    sem_post(sem_Sim); // the controller will wait for this before terminating
                     break;
 
                 case MOVE_HEAD:
@@ -483,15 +479,18 @@ int main(int argc, char *argv[])
             /* update shared memory for instruction related variables */
             instruction_being_executed = NO_INSTRUCTION;
             pnp -> ready_for_next_instruction = TRUE;
-            sem_post(sem_Sim);
+            //sem_post(sem_Sim); // allowing the Controller to access the shared memory for next instruction
         }
 
         sleepMilliseconds((long) 1000 / POLL_LOOP_RATE);
         sim_time += (double) 1 / POLL_LOOP_RATE;
 
         /* update shared memory for simulation time (since this must always be updated every poll cycle) */
+
         pnp -> sim_time = sim_time;
     }
+    // if program is terminated early, need to wait for controller to terminate first
+    sem_wait(sem_Sim);
     sprintf(Sim_str_array, "Time: %7.2f  Terminating...\n", sim_time);
     write(writeSimToDisplayFd, Sim_str_array, strlen(Sim_str_array));
     close(writeSimToDisplayFd);

@@ -77,15 +77,12 @@ int main(int argc, char *argv[])
     int writeContrlToDisplayFd = atoi(argv[1]);  // the file descriptor to write from controller to Display
     sem_t *sem_Startup = sem_open("/sem_Startup", 0);  // open the named semaphores
     sem_t *sem_Sim = sem_open("/sem_Sim", 0);
-//    sprintf(Contrl_str_array, "Controller: Terminating...\n");
-//    write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
-//    close(writeContrlToDisplayFd);
-//    exit(30);
 
     pnpOpen();
 
-    //sem_wait(sem_Startup);
-    sprintf(Contrl_str_array, "Time: %7.2f  Controller started successfully!\n", getSimulationTime());
+    // wait for startup to finish spawning processes and closing pipes
+    sem_wait(sem_Startup);
+    sprintf(Contrl_str_array, "Time: %7.2f  Pick and place controller started successfully!\n", getSimulationTime());
     write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
 
     int operation_mode, number_of_components_to_place, res;
@@ -127,7 +124,6 @@ int main(int argc, char *argv[])
                pi[0].component_designation, pi[0].component_footprint, pi[0].component_value, pi[0].x_target, pi[0].y_target, pi[0].theta_target, pi[0].feeder);
         write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
 
-
         /* loop until user quits */
         while(!isPnPSimulationQuitFlagOn())
         {
@@ -151,6 +147,16 @@ int main(int argc, char *argv[])
                             state = MOVE_TO_FEEDER;
                             sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Issued instruction to move to tape feeder %c\n", getSimulationTime(), state_name[state], c);
                             write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
+                    }
+                    if(finished == TRUE)
+                    {
+                            sprintf(Contrl_str_array, "Time: %7.2f  Terminating...\n", getSimulationTime());
+                            write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
+                            close(writeContrlToDisplayFd);
+                            pnpClose();
+                            sem_close(sem_Sim);
+                            sem_close(sem_Startup);
+                            exit(30);
                     }
                     break;
 
@@ -374,7 +380,7 @@ int main(int argc, char *argv[])
                     if (isSimulatorReadyForNextInstruction())
                     {
                         state = HOME;
-                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Gantry in Home position. Press q to quit.\n", getSimulationTime(), state_name[state]);
+                        sprintf(Contrl_str_array, "Time: %7.2f  New state: %.20s  Gantry in Home position\n", getSimulationTime(), state_name[state]);
                         write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
                     }
                     break;
@@ -1002,11 +1008,13 @@ int main(int argc, char *argv[])
             sleepMilliseconds((long) 1000 / POLL_LOOP_RATE);
             }//closing while loop
         }
+    // if program is quit early, the controller needs to terminate before simulator to prevent program hanging
     sprintf(Contrl_str_array, "Time: %7.2f  Terminating...\n", getSimulationTime());
     write(writeContrlToDisplayFd, Contrl_str_array, strlen(Contrl_str_array));
     close(writeContrlToDisplayFd);
     pnpClose();
     //return 0;
+    sem_post(sem_Sim);  // now allow the simulator to terminate
     sem_close(sem_Startup);
     sem_close(sem_Sim);
     exit(30);

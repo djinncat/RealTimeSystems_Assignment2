@@ -17,6 +17,7 @@ int fd;
 struct termios old_term;
 pthread_t key_thread;
 char key_pressed;
+//sem_t *sem_Sim;
 
 /*
  Function: setTerminalSettings
@@ -594,7 +595,11 @@ double getPickErrorTheta(int nozzle)
  */
 int isSimulatorReadyForNextInstruction()
 {
-    return pnp -> ready_for_next_instruction;
+    //if (sem_wait(sem_Sim) == 0)
+    //{
+        return pnp -> ready_for_next_instruction;
+    //}
+    //else return 0;
 }
 
 /*
@@ -641,6 +646,7 @@ char getKey()
  */
 int isPnPSimulationQuitFlagOn()
 {
+
     return pnp -> quit;
 }
 
